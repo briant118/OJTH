@@ -59,9 +59,13 @@ SECRET_KEY = 'django-insecure-q!pmbgqsv)ex*oeim(24ndh&*+8+cryv)2-%c=q)+!dns#mfcf
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # On Vercel, default to DEBUG=False even if env var is missing.
-IS_VERCEL = (
-    str(os.getenv("VERCEL", "")).strip() == "1"
-    or bool(str(os.getenv("VERCEL_ENV", "")).strip())
+IS_VERCEL = any(
+    [
+        str(os.getenv("VERCEL", "")).strip() == "1",
+        bool(str(os.getenv("VERCEL_ENV", "")).strip()),
+        bool(str(os.getenv("VERCEL_URL", "")).strip()),
+        bool(str(os.getenv("VERCEL_PROJECT_ID", "")).strip()),
+    ]
 )
 DEBUG = _env_bool("DEBUG", default=(not IS_VERCEL))
 
