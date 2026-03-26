@@ -201,10 +201,8 @@ STATIC_URL = '/static/'
 
 # Where `collectstatic` puts files.
 # Vercel expects Django static output in `.vercel/output/static/static/` (including `staticfiles.json`).
-if IS_VERCEL:
-    STATIC_ROOT = BASE_DIR / ".vercel" / "output" / "static" / "static"
-else:
-    STATIC_ROOT = BASE_DIR / "staticfiles"
+# Use this path consistently to avoid mismatches with Vercel's static manifest copy step.
+STATIC_ROOT = BASE_DIR / ".vercel" / "output" / "static" / "static"
 
 # Project-level static files (e.g. static/js/ojt.js at repo root)
 STATICFILES_DIRS = [
