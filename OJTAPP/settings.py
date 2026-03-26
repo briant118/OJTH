@@ -209,6 +209,11 @@ VERCEL_STATIC_DIR = BASE_DIR / ".vercel" / "output" / "static" / "static"
 ON_VERCEL_RUNTIME = IS_VERCEL or Path("/vercel/path0").exists() or Path("/vercel").exists()
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+# Vercel's Django preset serves static under `/staticfiles/` (not `/static/`)
+# when using the `/vercel/path0/staticfiles` build directory.
+if ON_VERCEL_RUNTIME:
+    STATIC_URL = "/staticfiles/"
+
 # Project-level static files (e.g. static/js/ojt.js at repo root)
 STATICFILES_DIRS = [
     BASE_DIR / 'static',
