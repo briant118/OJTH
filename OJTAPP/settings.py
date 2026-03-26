@@ -58,7 +58,7 @@ _load_simple_env_file(BASE_DIR / ".env")
 SECRET_KEY = 'django-insecure-q!pmbgqsv)ex*oeim(24ndh&*+8+cryv)2-%c=q)+!dns#mfcf'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = str(os.getenv("DEBUG", "False")).strip().lower() in {"1", "true", "yes", "on"}
 
 # Allow local development from phone/emulator and LAN IP.
 # For production, replace with your real domain(s).
@@ -90,6 +90,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -189,10 +190,16 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+# Where `collectstatic` puts files for production hosts (Vercel).
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
 # Project-level static files (e.g. static/js/ojt.js at repo root)
 STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
+
+# Serve static with WhiteNoise.
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # Email (SMTP) - Gmail
 # Use environment variables so you don't commit credentials to git.
