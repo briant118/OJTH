@@ -192,8 +192,12 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-# Where `collectstatic` puts files for production hosts (Vercel).
-STATIC_ROOT = BASE_DIR / "staticfiles"
+# Where `collectstatic` puts files.
+# Vercel expects Django static output in `.vercel/output/static/static/` (including `staticfiles.json`).
+if IS_VERCEL:
+    STATIC_ROOT = BASE_DIR / ".vercel" / "output" / "static" / "static"
+else:
+    STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Project-level static files (e.g. static/js/ojt.js at repo root)
 STATICFILES_DIRS = [
