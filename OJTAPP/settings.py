@@ -112,8 +112,10 @@ ROOT_URLCONF = 'OJTAPP.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],
-        'DIRS': [BASE_DIR / 'CalculateHours/templates'],
+        'DIRS': [
+            BASE_DIR / 'templates',
+            BASE_DIR / 'CalculateHours' / 'templates',
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -214,11 +216,11 @@ STATICFILES_DIRS = [
 
 # Django 6+ static storage config.
 #
-# To keep Vercel deployments stable, we intentionally disable hashed/manifest
-# filenames so templates always reference plain `/static/...` paths.
-WHITENOISE_USE_FINDERS = True
-WHITENOISE_STATIC_PREFIX = STATIC_URL
-staticfiles_backend = "django.contrib.staticfiles.storage.StaticFilesStorage"
+# Use the standard WhiteNoise production setup:
+# - `STATICFILES_DIRS` includes your repo's `static/`
+# - `collectstatic` writes into `STATIC_ROOT` (`staticfiles/`)
+# - WhiteNoise serves from `STATIC_ROOT` (optionally using the manifest)
+staticfiles_backend = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
