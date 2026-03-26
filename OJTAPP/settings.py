@@ -112,8 +112,7 @@ ROOT_URLCONF = 'OJTAPP.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],
-        'DIRS': [BASE_DIR / 'CalculateHours/templates'],
+        'DIRS': [BASE_DIR / 'templates', BASE_DIR / 'CalculateHours/templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -209,23 +208,15 @@ VERCEL_STATIC_DIR = BASE_DIR / ".vercel" / "output" / "static" / "static"
 ON_VERCEL_RUNTIME = IS_VERCEL or Path("/vercel/path0").exists() or Path("/vercel").exists()
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-# Vercel's Django preset serves static under `/staticfiles/` (not `/static/`)
-# when using the `/vercel/path0/staticfiles` build directory.
-if ON_VERCEL_RUNTIME:
-    STATIC_URL = "/staticfiles/"
-
 # Project-level static files (e.g. static/js/ojt.js at repo root)
 STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
 
 # Django 6+ static storage config.
-# On Vercel we disable manifest hashing to avoid missing-hash 404s when static serving
-# is not wired exactly like local dev.
-if ON_VERCEL_RUNTIME:
-    staticfiles_backend = "django.contrib.staticfiles.storage.StaticFilesStorage"
-else:
-    staticfiles_backend = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+# Keep the backend consistent so Vercel build and runtime don't disagree on hashed
+# filenames (this commonly causes `/static/...` 404s).
+staticfiles_backend = "django.contrib.staticfiles.storage.StaticFilesStorage"
 
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
