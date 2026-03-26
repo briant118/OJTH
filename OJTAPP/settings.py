@@ -200,14 +200,13 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-# Where `collectstatic` puts files.
-# On Vercel we collect into `.vercel/output/static/static/`.
-# WhiteNoise needs `STATIC_ROOT` to point to the same folder at runtime so `/static/...` works.
-VERCEL_STATIC_DIR = BASE_DIR / ".vercel" / "output" / "static" / "static"
-ON_VERCEL_RUNTIME = IS_VERCEL or VERCEL_STATIC_DIR.exists()
-if ON_VERCEL_RUNTIME:
-    STATIC_ROOT = VERCEL_STATIC_DIR
+# Where WhiteNoise serves files from.
+# On Vercel: serve directly from this repo's `static/` so we don't depend on
+# Vercel's Build Output "filesystem static" (`.vercel/output/static/...`).
+if IS_VERCEL:
+    STATIC_ROOT = BASE_DIR / "static"
 else:
+    # Standard production pattern (collectstatic -> STATIC_ROOT)
     STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Project-level static files (e.g. static/js/ojt.js at repo root)
@@ -216,9 +215,9 @@ STATICFILES_DIRS = [
 ]
 
 # Django 6+ static storage config.
-# On Vercel we disable manifest hashing to avoid missing-hash 404s when static serving
-# is not wired exactly like local dev.
-if ON_VERCEL_RUNTIME:
+# On Vercel we disable manifest hashing because we are serving directly from `static/`
+# (not a collectstatic output directory with a manifest).
+if IS_VERCEL:
     staticfiles_backend = "django.contrib.staticfiles.storage.StaticFilesStorage"
 else:
     staticfiles_backend = "whitenoise.storage.CompressedManifestStaticFilesStorage"
