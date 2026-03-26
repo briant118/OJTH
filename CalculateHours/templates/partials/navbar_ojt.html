@@ -1,4 +1,3 @@
-{% load inline_assets %}
 {% load static %}
 <header class="ojt-app-header sticky-top bg-white border-bottom shadow-sm">
   {% if request.user.is_authenticated %}
@@ -15,7 +14,7 @@
     <a class="navbar-brand d-flex align-items-center gap-2 py-1 mb-0" href="{% url 'home' %}">
       <span class="rounded-3 bg-primary bg-gradient text-white d-inline-flex align-items-center justify-content-center ojt-brand-icon">
         <img
-          src="{% inline_image_data_url 'images/logo.png' %}"
+          src="{% static 'images/logo.png' %}"
           alt="OJT Hours logo"
           class="ojt-brand-logo"
         />

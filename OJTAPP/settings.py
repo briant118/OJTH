@@ -112,7 +112,8 @@ ROOT_URLCONF = 'OJTAPP.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates', BASE_DIR / 'CalculateHours/templates'],
+        'DIRS': [BASE_DIR / 'templates'],
+        'DIRS': [BASE_DIR / 'CalculateHours/templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -200,13 +201,14 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 # Where `collectstatic` puts files.
-# Vercel source builds should serve static via WhiteNoise from `STATIC_ROOT`.
+# On Vercel we collect into `.vercel/output/static/static/`.
+# WhiteNoise needs `STATIC_ROOT` to point to the same folder at runtime so `/static/...` works.
 VERCEL_STATIC_DIR = BASE_DIR / ".vercel" / "output" / "static" / "static"
-# Build logs show static assets end up under `/vercel/path0/staticfiles`, so
-# we keep `STATIC_ROOT` consistent there. Use filesystem detection so build
-# and runtime behave the same even if Vercel env vars differ.
-ON_VERCEL_RUNTIME = IS_VERCEL or Path("/vercel/path0").exists() or Path("/vercel").exists()
-STATIC_ROOT = BASE_DIR / "staticfiles"
+ON_VERCEL_RUNTIME = IS_VERCEL or VERCEL_STATIC_DIR.exists()
+if ON_VERCEL_RUNTIME:
+    STATIC_ROOT = VERCEL_STATIC_DIR
+else:
+    STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Project-level static files (e.g. static/js/ojt.js at repo root)
 STATICFILES_DIRS = [
@@ -214,9 +216,12 @@ STATICFILES_DIRS = [
 ]
 
 # Django 6+ static storage config.
-# Keep the backend consistent so Vercel build and runtime don't disagree on hashed
-# filenames (this commonly causes `/static/...` 404s).
-staticfiles_backend = "django.contrib.staticfiles.storage.StaticFilesStorage"
+# On Vercel we disable manifest hashing to avoid missing-hash 404s when static serving
+# is not wired exactly like local dev.
+if ON_VERCEL_RUNTIME:
+    staticfiles_backend = "django.contrib.staticfiles.storage.StaticFilesStorage"
+else:
+    staticfiles_backend = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
