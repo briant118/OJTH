@@ -1,4 +1,5 @@
 {% load static %}
+{% load inline_assets %}
 <!doctype html>
 <html lang="en">
   <head>
@@ -7,7 +8,7 @@
     <title>Sign in — OJT Hours</title>
     {% include "partials/bootstrap_head.html" %}
   </head>
-  <body class="ojt-page ojt-auth-page bg-body-tertiary" style="--ojt-auth-bg-url: url('{% static 'images/background.jpg' %}');">
+  <body class="ojt-page ojt-auth-page bg-body-tertiary" style="--ojt-auth-bg-url: url({{ inline_static_data_uri 'images/background.jpg' }});">
     <div class="container-fluid px-3 px-sm-4 py-0">
       <div class="row justify-content-center align-items-center min-vh-100">
         <div class="col-12 col-lg-6 col-xl-5">

@@ -1,4 +1,5 @@
 {% load static %}
+{% load inline_assets %}
 <!doctype html>
 <html lang="en">
   <head>
@@ -182,10 +183,10 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js" crossorigin="anonymous"></script>
-    <script src="{% static 'js/ojt-common.js' %}?v=2"></script>
-    <script src="{% static 'js/ojt-schedule.js' %}"></script>
-    <script src="{% static 'js/ojt-log.js' %}?v=2"></script>
-    <script src="{% static 'js/ojt-filter.js' %}?v=2"></script>
-    <script src="{% static 'js/ojt-dtr-pdf.js' %}"></script>
+    <script>{{ inline_static_text 'js/ojt-common.js' }}</script>
+    <script>{{ inline_static_text 'js/ojt-schedule.js' }}</script>
+    <script>{{ inline_static_text 'js/ojt-log.js' }}</script>
+    <script>{{ inline_static_text 'js/ojt-filter.js' }}</script>
+    <script>{{ inline_static_text 'js/ojt-dtr-pdf.js' }}</script>
   </body>
 </html>
