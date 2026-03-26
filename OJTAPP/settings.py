@@ -59,7 +59,10 @@ SECRET_KEY = 'django-insecure-q!pmbgqsv)ex*oeim(24ndh&*+8+cryv)2-%c=q)+!dns#mfcf
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # On Vercel, default to DEBUG=False even if env var is missing.
-IS_VERCEL = str(os.getenv("VERCEL", "")).strip() == "1"
+IS_VERCEL = (
+    str(os.getenv("VERCEL", "")).strip() == "1"
+    or bool(str(os.getenv("VERCEL_ENV", "")).strip())
+)
 DEBUG = _env_bool("DEBUG", default=(not IS_VERCEL))
 
 # Allow local development from phone/emulator and LAN IP.
@@ -204,8 +207,15 @@ STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
 
-# Serve static with WhiteNoise.
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+# Django 6+ static storage config (ensures staticfiles.json manifest is generated).
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 # Email (SMTP) - Gmail
 # Use environment variables so you don't commit credentials to git.
