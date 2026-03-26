@@ -1,0 +1,114 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Verify email — OJT Hours</title>
+    {% include "partials/bootstrap_head.html" %}
+  </head>
+  <body class="ojt-page ojt-auth-page bg-body-tertiary" style="--ojt-auth-bg-url: url('{% static 'images/background.jpg' %}');">
+    <div class="container-fluid px-3 px-sm-4 py-0">
+      <div class="row justify-content-center align-items-center min-vh-100">
+        <div class="col-12 col-lg-6 col-xl-5">
+          <div class="card ojt-auth-card border-0 overflow-hidden">
+            <div class="card-header border-0 rounded-top-4 ojt-auth-header">
+              <strong class="d-flex align-items-center gap-2 ojt-auth-title">
+                <i class="bi bi-envelope ojt-auth-icon" aria-hidden="true"></i>
+                Verify email
+              </strong>
+              <div class="ojt-auth-subtitle">Enter the 4-digit code sent to your email</div>
+            </div>
+
+            <div class="card-body p-4">
+              <form method="post" class="ojt-auth-form" autocomplete="off">
+                {% csrf_token %}
+
+                {% if message %}
+                  <div class="mb-3">
+                    <div class="alert alert-light border" role="alert">
+                      {{ message }}
+                    </div>
+                  </div>
+                {% endif %}
+
+                {% if error %}
+                  <div class="mb-3">
+                    <div class="ojt-auth-warning alert-light border" role="alert">
+                      <span class="ojt-auth-warning-text">{{ error }}</span>
+                    </div>
+                  </div>
+                {% endif %}
+
+                <div class="ojt-auth-field">
+                  <label for="id_otp">OTP Code:</label>
+                  <div class="ojt-otp-row">
+                    <input
+                      id="id_otp"
+                      name="otp"
+                      type="text"
+                      inputmode="numeric"
+                      pattern="[0-9]{4}"
+                      maxlength="4"
+                      required
+                      autocomplete="one-time-code"
+                    />
+
+                    <button
+                      type="submit"
+                      name="action"
+                      value="resend"
+                      formnovalidate
+                      class="ojt-resend-otp-btn"
+                    >
+                      Resend OTP
+                    </button>
+                  </div>
+                  <div class="text-center mt-2">
+                    <span class="ojt-otp-countdown" data-remaining="{{ otp_remaining|default:0 }}">
+                      Expires in <span id="otpCountdownText">--:--</span>
+                    </span>
+                  </div>
+                </div>
+
+                <button class="btn btn-primary ojt-auth-submit ojt-btn-touch" type="submit">
+                  <i class="bi bi-check-lg me-1" aria-hidden="true"></i>Verify
+                </button>
+
+                <div class="text-center ojt-auth-footer">
+                  <a href="{% url 'clear_otp' %}" class="ojt-auth-link text-decoration-none">Back to login</a>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  <script>
+    (function () {
+      const el = document.querySelector(".ojt-otp-countdown");
+      const out = document.getElementById("otpCountdownText");
+      if (!el || !out) return;
+
+      let remaining = parseInt(el.getAttribute("data-remaining") || "0", 10);
+      if (!Number.isFinite(remaining) || remaining < 0) remaining = 0;
+
+      const fmt = (s) => {
+        const m = Math.floor(s / 60);
+        const ss = s % 60;
+        return String(m).padStart(2, "0") + ":" + String(ss).padStart(2, "0");
+      };
+
+      const tick = () => {
+        out.textContent = fmt(remaining);
+        if (remaining <= 0) return;
+        remaining -= 1;
+        setTimeout(tick, 1000);
+      };
+
+      tick();
+    })();
+  </script>
+  </body>
+</html>
+

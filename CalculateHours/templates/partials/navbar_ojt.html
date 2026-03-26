@@ -1,0 +1,83 @@
+{% load static %}
+<header class="ojt-app-header sticky-top bg-white border-bottom shadow-sm">
+  {% if request.user.is_authenticated %}
+    <script>
+      // Used by the time-entry logger to isolate localStorage/server data per account.
+      window.OJT_AUTH_USER_ID = "{{ request.user.pk }}";
+    </script>
+  {% else %}
+    <script>
+      window.OJT_AUTH_USER_ID = "";
+    </script>
+  {% endif %}
+  <div class="container-fluid px-3 px-sm-4 px-lg-5 py-2 d-flex align-items-center justify-content-between gap-2">
+    <a class="navbar-brand d-flex align-items-center gap-2 py-1 mb-0" href="{% url 'home' %}">
+      <span class="rounded-3 bg-primary bg-gradient text-white d-inline-flex align-items-center justify-content-center ojt-brand-icon">
+        <img
+          src="{% static 'images/logo.png' %}"
+          alt="OJT Hours logo"
+          class="ojt-brand-logo"
+        />
+      </span>
+      <span class="fw-semibold text-dark">OJT Hours</span>
+    </a>
+    <div class="d-flex align-items-center gap-2 ms-auto">
+      {% if show_clock %}
+        <div class="ojt-live-clock text-end rounded-3 bg-body-secondary border px-2 py-1 px-sm-3 py-sm-2 ojt-live-clock-compact">
+          <div class="text-secondary small d-none d-sm-block"><i class="bi bi-clock me-1"></i>Time in today</div>
+          <div class="fw-semibold text-break small" id="liveDateTime">--/--/---- --:--</div>
+        </div>
+      {% endif %}
+
+      {% if request.user.is_authenticated %}
+        <!-- Profile moved to the bottom navbar -->
+      {% else %}
+        <a class="btn btn-sm btn-outline-primary" href="{% url 'login' %}">
+          Sign in
+        </a>
+      {% endif %}
+    </div>
+  </div>
+</header>
+
+<nav class="ojt-bottom-nav fixed-bottom border-top shadow bg-white" aria-label="Primary">
+  <div class="container-fluid px-0">
+    <div class="d-flex justify-content-around align-items-stretch ojt-bottom-nav-row">
+      <a
+        class="ojt-bottom-nav-item flex-fill {% if request.resolver_match.url_name == 'home' %}is-active{% endif %}"
+        {% if request.resolver_match.url_name == 'home' %}aria-current="page"{% endif %}
+        href="{% url 'home' %}"
+      >
+        <i class="bi bi-house-door ojt-bottom-nav-icon" aria-hidden="true"></i>
+        <span class="ojt-bottom-nav-label">Home</span>
+      </a>
+      <a
+        class="ojt-bottom-nav-item flex-fill {% if request.resolver_match.url_name == 'calculate' %}is-active{% endif %}"
+        {% if request.resolver_match.url_name == 'calculate' %}aria-current="page"{% endif %}
+        href="{% url 'calculate' %}"
+      >
+        <i class="bi bi-journal-check ojt-bottom-nav-icon" aria-hidden="true"></i>
+        <span class="ojt-bottom-nav-label">Records</span>
+      </a>
+      <a
+        class="ojt-bottom-nav-item flex-fill {% if request.resolver_match.url_name == 'process' %}is-active{% endif %}"
+        {% if request.resolver_match.url_name == 'process' %}aria-current="page"{% endif %}
+        href="{% url 'process' %}"
+      >
+        <i class="bi bi-calendar-week ojt-bottom-nav-icon" aria-hidden="true"></i>
+        <span class="ojt-bottom-nav-label">Schedule</span>
+      </a>
+
+      {% if request.user.is_authenticated %}
+        <a
+          class="ojt-bottom-nav-item flex-fill {% if request.resolver_match.url_name == 'profile' %}is-active{% endif %}"
+          {% if request.resolver_match.url_name == 'profile' %}aria-current="page"{% endif %}
+          href="{% url 'profile' %}"
+        >
+          <i class="bi bi-person ojt-bottom-nav-icon" aria-hidden="true"></i>
+          <span class="ojt-bottom-nav-label">Profile</span>
+        </a>
+      {% endif %}
+    </div>
+  </div>
+</nav>

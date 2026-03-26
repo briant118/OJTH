@@ -1,0 +1,9 @@
+*.sqlite3
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Secrets / local env
+.env
+venv/.venv

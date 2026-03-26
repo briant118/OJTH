@@ -1,0 +1,104 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sign in — OJT Hours</title>
+    {% include "partials/bootstrap_head.html" %}
+  </head>
+  <body class="ojt-page ojt-auth-page bg-body-tertiary" style="--ojt-auth-bg-url: url('{% static 'images/background.jpg' %}');">
+    <div class="container-fluid px-3 px-sm-4 py-0">
+      <div class="row justify-content-center align-items-center min-vh-100">
+        <div class="col-12 col-lg-6 col-xl-5">
+          <div class="card ojt-auth-card border-0 overflow-hidden">
+            <div class="card-header border-0 rounded-top-4 ojt-auth-header">
+              <strong class="d-flex align-items-center gap-2 ojt-auth-title">
+                <i class="bi bi-box-arrow-in-right ojt-auth-icon" aria-hidden="true"></i>
+                Sign in
+              </strong>
+              <div class="ojt-auth-subtitle">Access your OJT hours</div>
+            </div>
+
+            <div class="card-body p-4">
+              <form method="post" class="ojt-auth-form" autocomplete="off">
+                {% csrf_token %}
+
+                {% if form.non_field_errors or form.errors %}
+                  <div class="mb-3">
+                    <div class="ojt-auth-warning alert-light border" role="alert">
+                      <span class="ojt-auth-warning-text">Incorrect password or email</span>
+                    </div>
+                  </div>
+                {% endif %}
+
+                <div class="ojt-auth-field">
+                  {{ form.username.label_tag }}
+                  {{ form.username }}
+                </div>
+
+                <div class="ojt-auth-field">
+                  {{ form.password.label_tag }}
+                  {{ form.password }}
+                  <div class="form-check mt-2">
+                    <input class="form-check-input" type="checkbox" id="toggleLoginPassword" />
+                    <label class="form-check-label ojt-auth-toggle-label" for="toggleLoginPassword">
+                      Show password
+                    </label>
+                  </div>
+                </div>
+
+                <button class="btn btn-primary ojt-auth-submit ojt-btn-touch" type="submit">
+                  <i class="bi bi-unlock me-1" aria-hidden="true"></i>Login
+                </button>
+
+                <div class="text-center ojt-auth-footer">
+                  <a href="{% url 'signup' %}" class="ojt-auth-link text-decoration-none">
+                    Create an account
+                  </a>
+                  <div class="mt-2">
+                    <a href="{% url 'change_password_start' %}" class="ojt-auth-link text-decoration-none">
+                      Change password
+                    </a>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  <script>
+    // Auto-hide login warning after 10 seconds
+    (function () {
+      const run = function () {
+        const passwordInput = document.getElementById("id_password");
+        const toggle = document.getElementById("toggleLoginPassword");
+        if (passwordInput && toggle) {
+          toggle.addEventListener("change", function () {
+            passwordInput.type = toggle.checked ? "text" : "password";
+          });
+        }
+
+        const warnings = document.querySelectorAll(".ojt-auth-warning");
+        if (!warnings || warnings.length === 0) return;
+        setTimeout(function () {
+          warnings.forEach(function (el) {
+            el.classList.add("ojt-auth-warning--hide");
+            setTimeout(function () {
+              if (el && el.parentNode) el.parentNode.removeChild(el);
+            }, 400);
+          });
+        }, 10000);
+      };
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", run);
+      } else {
+        run();
+      }
+    })();
+  </script>
+  </body>
+</html>
+

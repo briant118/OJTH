@@ -1,0 +1,174 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#f8f9fa" />
+    <title>Time in / Time out — OJT Hours</title>
+    {% include "partials/bootstrap_head.html" %}
+  </head>
+  <body class="bg-body-tertiary ojt-page">
+    <script>
+      try {
+        var raw = localStorage.getItem("ojt_schedule_v1");
+        if (raw) {
+          var d = JSON.parse(raw);
+          var office = (d && d.assignedOffice ? String(d.assignedOffice) : "").trim();
+          if (d && d.startDate && d.totalHours != null && d.totalHours !== "" && office) {
+            document.documentElement.classList.add("ojt-schedule-ready");
+          }
+        }
+      } catch (e) {}
+    </script>
+    {% include "partials/navbar_ojt.html" with show_clock=True %}
+
+    <!-- Shown when no saved schedule (default until JS runs with a schedule) -->
+    <div id="ojtScheduleGate" class="container-fluid px-3 px-sm-4 px-lg-5 pb-4 pt-3">
+      <div class="row justify-content-center">
+        <div class="col-12 col-lg-8">
+          <div class="card border-warning border-2 shadow-sm rounded-4">
+            <div class="card-body p-4 p-md-5 text-center">
+              <div class="rounded-circle bg-warning-subtle text-warning d-inline-flex align-items-center justify-content-center mb-3" style="width: 4rem; height: 4rem">
+                <i class="bi bi-calendar-x fs-2"></i>
+              </div>
+              <h2 class="h4 mb-3">Set your schedule first</h2>
+              <p class="text-secondary mb-4">
+                You need a saved OJT plan before you can use <strong>Time in</strong> and <strong>Time out</strong>. After you set your schedule, come back here: save <strong>Time in</strong> first, then <strong>Time out</strong>.
+              </p>
+              <a class="btn btn-primary btn-lg" href="{% url 'process' %}"><i class="bi bi-calendar-week me-2"></i>Set schedule</a>
+              <a class="btn btn-outline-secondary btn-lg ms-2" href="{% url 'home' %}">Home</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="ojtTimeInMain">
+    <div class="container-fluid px-3 px-sm-4 px-lg-5 pb-4 pb-md-5 pt-2 pt-md-3">
+      <header class="mb-4">
+        <h1 class="mb-1 fs-4 fs-md-3 fw-semibold"><i class="bi bi-clock text-primary me-2"></i>Time in / Time out</h1>
+        <p class="text-secondary small mb-0">
+          <strong>Step 1:</strong> enter <strong>time in</strong> and save. <strong>Step 2:</strong> after that, you’ll see <strong>time out</strong> to finish the session.
+        </p>
+      </header>
+
+      <div class="row g-3 g-md-4">
+        <div class="col-12 col-xl-10 mx-auto">
+          <div class="card shadow-sm border-0 rounded-4 mb-4">
+            <div class="card-header bg-white py-3 border-0 rounded-top-4">
+              <strong class="d-flex align-items-center gap-2"><i class="bi bi-pencil-square text-primary"></i> Log your times</strong>
+              <div class="text-secondary small mt-2">Hidden field tracks which session you’re editing.</div>
+            </div>
+            <div class="card-body">
+              <form id="entryForm" class="row g-3" novalidate>
+                <input type="hidden" id="entryId" value="" autocomplete="off" />
+
+                <!-- Step 1: time in only (time out hidden until time in is saved / session loaded) -->
+                <div class="col-12 col-md-6">
+                  <label class="form-label" for="entryDate">Date</label>
+                  <input class="form-control" id="entryDate" type="date" />
+                  <div class="form-text">Defaults to today; change if you’re fixing an old day.</div>
+                </div>
+                <div class="col-12 col-md-6">
+                  <label class="form-label" for="entryTimeIn">Time in</label>
+                  <input class="form-control" id="entryTimeIn" type="time" />
+                  <div class="form-text">Use <strong>Time in now</strong> or set the time, then <strong>Save time in</strong>.</div>
+                </div>
+
+                <div class="col-12">
+                  <div class="text-secondary small fw-semibold mb-2">Step 1 — Time in</div>
+                  <div class="d-flex flex-wrap gap-2">
+                    <button class="btn btn-primary ojt-btn-touch" type="button" id="btnClockInNow">
+                      <i class="bi bi-box-arrow-in-right me-1"></i>Time in now
+                    </button>
+                    <button class="btn btn-success ojt-btn-touch" type="button" id="btnSaveTimeInOnly">
+                      <i class="bi bi-sunrise me-1"></i>Save time in
+                    </button>
+                  </div>
+                </div>
+
+              </form>
+            </div>
+          </div>
+
+          <div class="card shadow-sm border-0 rounded-4">
+            <div class="card-header bg-white py-3 border-0 rounded-top-4">
+              <strong class="d-flex align-items-center gap-2"><i class="bi bi-table text-primary"></i> All sessions</strong>
+              <div class="text-secondary small mt-2"><strong>Open</strong> = waiting for time out. <strong>Done</strong> = hours counted. Use pencil to add time out or edit.</div>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive ojt-table-wrap">
+                <table class="table table-sm mb-0 align-middle ojt-table">
+                  <thead class="table-light">
+                    <tr>
+                      <th style="min-width: 130px;">Date</th>
+                      <th>Time in</th>
+                      <th>Time out</th>
+                      <th>Status</th>
+                      <th class="text-end">Hours</th>
+                      <th class="text-end" style="min-width: 110px;">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="entryTableBody">
+                    <tr>
+                      <td colspan="6" class="text-center text-secondary py-4">Loading…</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+    </div>
+
+    <div class="modal fade" id="confirmActionModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+          <div class="modal-header border-0 pb-0">
+            <h2 class="h6 mb-0" id="confirmActionTitle">Confirm action</h2>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body pt-2">
+            <p class="mb-0" id="confirmActionBody"></p>
+          </div>
+          <div class="modal-footer border-0 pt-0">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" id="btnConfirmAction">Confirm</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="infoActionModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+          <div class="modal-header border-0 pb-0">
+            <h2 class="h6 mb-0"><i class="bi bi-exclamation-triangle text-warning me-2"></i>Message</h2>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body pt-2">
+            <p class="mb-0" id="infoActionBody">—</p>
+          </div>
+          <div class="modal-footer border-0 pt-0">
+            <button type="button" class="btn btn-primary" data-bs-dismiss="modal" id="btnInfoActionOk">
+              OK
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js" crossorigin="anonymous"></script>
+    <script src="{% static 'js/ojt-common.js' %}?v=2"></script>
+    <script src="{% static 'js/ojt-schedule.js' %}"></script>
+    <script src="{% static 'js/ojt-log.js' %}?v=2"></script>
+    <script src="{% static 'js/ojt-time-in-out.js' %}?v=2"></script>
+    <script src="{% static 'js/ojt-dtr-pdf.js' %}"></script>
+  </body>
+</html>
