@@ -202,11 +202,14 @@ STATIC_URL = '/static/'
 
 # Where `collectstatic` puts files.
 # Vercel source builds should serve static via WhiteNoise from `STATIC_ROOT`.
-# We intentionally collect into `staticfiles/` on Vercel too, so `/static/...` works
-# even when we are not using committed `.vercel/output` artifacts.
+# On Vercel we collect into `.vercel/output/static/static/` so the deployed
+# Output API has the static assets at runtime.
 VERCEL_STATIC_DIR = BASE_DIR / ".vercel" / "output" / "static" / "static"
 ON_VERCEL_RUNTIME = IS_VERCEL
-STATIC_ROOT = BASE_DIR / "staticfiles"
+if ON_VERCEL_RUNTIME:
+    STATIC_ROOT = VERCEL_STATIC_DIR
+else:
+    STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Project-level static files (e.g. static/js/ojt.js at repo root)
 STATICFILES_DIRS = [
