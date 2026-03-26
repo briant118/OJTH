@@ -214,12 +214,14 @@ STATICFILES_DIRS = [
 
 # Django 6+ static storage config.
 #
-# On Vercel, serve static directly from the repo's `static/` directory (filesystem),
-# so URLs stay un-hashed (`/static/css/...`) and Vercel can serve them without
-# depending on `collectstatic` artifacts being bundled into the function.
+# Vercel runs Django as a Serverless Function. The safest approach is to serve
+# static files directly from the repo's `static/` directory at runtime (no
+# hashed/manifest filenames), so the function can always find them.
 #
-# Outside Vercel, use the standard WhiteNoise manifest pipeline.
+# Locally / non-Vercel deployments can keep the manifest pipeline.
 if IS_VERCEL:
+    WHITENOISE_USE_FINDERS = True
+    WHITENOISE_STATIC_PREFIX = STATIC_URL
     staticfiles_backend = "django.contrib.staticfiles.storage.StaticFilesStorage"
 else:
     staticfiles_backend = "whitenoise.storage.CompressedManifestStaticFilesStorage"
