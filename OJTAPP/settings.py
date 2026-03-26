@@ -201,11 +201,11 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 # Where `collectstatic` puts files.
-# Vercel copies `staticfiles.json` from `.vercel/output/static/static/`.
-# But at runtime we want Django to read the manifest from `staticfiles/`.
-RUNNING_COLLECTSTATIC = "collectstatic" in os.getenv("RUNNING_COLLECTSTATIC", "") or "collectstatic" in sys.argv
-if RUNNING_COLLECTSTATIC:
-    STATIC_ROOT = BASE_DIR / ".vercel" / "output" / "static" / "static"
+# On Vercel we collect into `.vercel/output/static/static/`.
+# WhiteNoise needs `STATIC_ROOT` to point to the same folder at runtime so `/static/...` works.
+VERCEL_STATIC_DIR = BASE_DIR / ".vercel" / "output" / "static" / "static"
+if IS_VERCEL or VERCEL_STATIC_DIR.exists():
+    STATIC_ROOT = VERCEL_STATIC_DIR
 else:
     STATIC_ROOT = BASE_DIR / "staticfiles"
 
