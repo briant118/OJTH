@@ -1,15 +1,8 @@
 {
-  "builds": [
-    {
-      "src": "OJTAPP/wsgi.py",
-      "use": "@ardnt/vercel-python-wsgi",
-      "config": { "maxLambdaSize": "15mb" }
-    }
-  ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "OJTAPP/wsgi.py"
+      "dest": "api/wsgi.py"
     }
   ]
 }
