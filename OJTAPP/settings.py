@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 import os
+import sys
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
@@ -200,9 +201,13 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 # Where `collectstatic` puts files.
-# Vercel expects Django static output in `.vercel/output/static/static/` (including `staticfiles.json`).
-# Use this path consistently to avoid mismatches with Vercel's static manifest copy step.
-STATIC_ROOT = BASE_DIR / ".vercel" / "output" / "static" / "static"
+# Vercel copies `staticfiles.json` from `.vercel/output/static/static/`.
+# But at runtime we want Django to read the manifest from `staticfiles/`.
+RUNNING_COLLECTSTATIC = "collectstatic" in os.getenv("RUNNING_COLLECTSTATIC", "") or "collectstatic" in sys.argv
+if RUNNING_COLLECTSTATIC:
+    STATIC_ROOT = BASE_DIR / ".vercel" / "output" / "static" / "static"
+else:
+    STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Project-level static files (e.g. static/js/ojt.js at repo root)
 STATICFILES_DIRS = [
