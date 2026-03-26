@@ -204,7 +204,7 @@ STATIC_URL = '/static/'
 # On Vercel we collect into `.vercel/output/static/static/`.
 # WhiteNoise needs `STATIC_ROOT` to point to the same folder at runtime so `/static/...` works.
 VERCEL_STATIC_DIR = BASE_DIR / ".vercel" / "output" / "static" / "static"
-if IS_VERCEL or VERCEL_STATIC_DIR.exists():
+if IS_VERCEL:
     STATIC_ROOT = VERCEL_STATIC_DIR
 else:
     STATIC_ROOT = BASE_DIR / "staticfiles"
@@ -214,14 +214,17 @@ STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
 
-# Django 6+ static storage config (ensures staticfiles.json manifest is generated).
+# Django 6+ static storage config.
+# On Vercel we disable manifest hashing to avoid missing-hash 404s when static serving
+# is not wired exactly like local dev.
+if IS_VERCEL:
+    staticfiles_backend = "django.contrib.staticfiles.storage.StaticFilesStorage"
+else:
+    staticfiles_backend = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
 STORAGES = {
-    "default": {
-        "BACKEND": "django.core.files.storage.FileSystemStorage",
-    },
-    "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
-    },
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": staticfiles_backend},
 }
 
 # Email (SMTP) - Gmail
