@@ -10,3 +10,6 @@ venv/
 # Secrets / local env
 .env
 venv/.venv
+
+# Django collectstatic output
+staticfiles/

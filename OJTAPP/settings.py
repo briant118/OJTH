@@ -216,6 +216,10 @@ STATICFILES_DIRS = [
 # On Vercel we disable manifest hashing because we are serving directly from `static/`
 # (not a collectstatic output directory with a manifest).
 if IS_VERCEL:
+    # Serve static directly from the source tree using Django's staticfiles
+    # finders. This avoids relying on Vercel "prebuilt/static output" behavior.
+    WHITENOISE_USE_FINDERS = True
+    WHITENOISE_STATIC_PREFIX = STATIC_URL
     staticfiles_backend = "django.contrib.staticfiles.storage.StaticFilesStorage"
 else:
     staticfiles_backend = "whitenoise.storage.CompressedManifestStaticFilesStorage"
