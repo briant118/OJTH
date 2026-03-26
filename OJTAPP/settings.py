@@ -200,14 +200,12 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-# Where WhiteNoise serves files from.
-# On Vercel: serve directly from this repo's `static/` so we don't depend on
-# Vercel's Build Output "filesystem static" (`.vercel/output/static/...`).
-if IS_VERCEL:
-    STATIC_ROOT = BASE_DIR / "static"
-else:
-    # Standard production pattern (collectstatic -> STATIC_ROOT)
-    STATIC_ROOT = BASE_DIR / "staticfiles"
+# Collectstatic output directory.
+#
+# IMPORTANT: `STATIC_ROOT` must NOT overlap with `STATICFILES_DIRS`.
+# Vercel builds commonly run `python manage.py collectstatic`, so keep a
+# dedicated output folder even on Vercel.
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Project-level static files (e.g. static/js/ojt.js at repo root)
 STATICFILES_DIRS = [
