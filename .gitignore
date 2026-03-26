@@ -7,3 +7,7 @@ venv/
 # Secrets / local env
 .env
 venv/.venv
+
+# Vercel Output API artifacts should not be committed.
+# Keeping them committed makes Vercel serve "static-only" output and can break Django routing.
+.vercel/output/
