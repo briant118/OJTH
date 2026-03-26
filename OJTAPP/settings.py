@@ -213,16 +213,12 @@ STATICFILES_DIRS = [
 ]
 
 # Django 6+ static storage config.
-# On Vercel we disable manifest hashing because we are serving directly from `static/`
-# (not a collectstatic output directory with a manifest).
-if IS_VERCEL:
-    # Serve static directly from the source tree using Django's staticfiles
-    # finders. This avoids relying on Vercel "prebuilt/static output" behavior.
-    WHITENOISE_USE_FINDERS = True
-    WHITENOISE_STATIC_PREFIX = STATIC_URL
-    staticfiles_backend = "django.contrib.staticfiles.storage.StaticFilesStorage"
-else:
-    staticfiles_backend = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+#
+# Use the standard WhiteNoise production setup:
+# - `STATICFILES_DIRS` includes your repo's `static/`
+# - `collectstatic` writes into `STATIC_ROOT` (`staticfiles/`)
+# - WhiteNoise serves from `STATIC_ROOT` (optionally using the manifest)
+staticfiles_backend = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
