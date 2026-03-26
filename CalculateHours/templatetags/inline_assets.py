@@ -6,6 +6,7 @@ from functools import lru_cache
 
 from django import template
 from django.contrib.staticfiles import finders
+from django.conf import settings as dj_settings
 from django.utils.safestring import mark_safe
 
 
@@ -30,20 +31,32 @@ def _read_text_from_static(static_path: str) -> str:
     Uses Django's staticfiles finders so it works in both dev and Vercel.
     """
     file_path = finders.find(static_path)
-    if not file_path:
-        # Fail-safe: avoid 500s if an asset can't be found in the build/runtime
-        # environment. Returning a comment keeps the template valid.
+    if file_path:
+        return Path(file_path).read_text(encoding="utf-8")
+
+    # Fallback: read directly from repo `static/` folder.
+    # This is useful when Django's staticfiles finders aren't configured
+    # the same way across build/runtime environments.
+    static_fs_path = Path(getattr(dj_settings, "BASE_DIR", Path.cwd())) / "static" / static_path
+    try:
+        return static_fs_path.read_text(encoding="utf-8")
+    except Exception:
+        # Fail-safe: avoid 500s if an asset can't be found.
         return f"/* Missing static asset: {static_path} */"
-    return Path(file_path).read_text(encoding="utf-8")
 
 
 @lru_cache(maxsize=32)
 def _read_bytes_from_static(static_path: str) -> bytes:
     file_path = finders.find(static_path)
-    if not file_path:
+    if file_path:
+        return Path(file_path).read_bytes()
+
+    static_fs_path = Path(getattr(dj_settings, "BASE_DIR", Path.cwd())) / "static" / static_path
+    try:
+        return static_fs_path.read_bytes()
+    except Exception:
         # Fail-safe: return empty bytes so we can still render a valid data URL.
         return b""
-    return Path(file_path).read_bytes()
 
 
 @register.simple_tag
