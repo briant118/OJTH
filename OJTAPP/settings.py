@@ -58,7 +58,9 @@ _load_simple_env_file(BASE_DIR / ".env")
 SECRET_KEY = 'django-insecure-q!pmbgqsv)ex*oeim(24ndh&*+8+cryv)2-%c=q)+!dns#mfcf'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = str(os.getenv("DEBUG", "False")).strip().lower() in {"1", "true", "yes", "on"}
+# On Vercel, default to DEBUG=False even if env var is missing.
+IS_VERCEL = str(os.getenv("VERCEL", "")).strip() == "1"
+DEBUG = _env_bool("DEBUG", default=(not IS_VERCEL))
 
 # Allow local development from phone/emulator and LAN IP.
 # For production, replace with your real domain(s).
@@ -88,9 +90,9 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -188,7 +190,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 
 # Where `collectstatic` puts files for production hosts (Vercel).
 STATIC_ROOT = BASE_DIR / "staticfiles"
