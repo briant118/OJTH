@@ -31,7 +31,9 @@ def _read_text_from_static(static_path: str) -> str:
     """
     file_path = finders.find(static_path)
     if not file_path:
-        raise FileNotFoundError(f"Static asset not found: {static_path}")
+        # Fail-safe: avoid 500s if an asset can't be found in the build/runtime
+        # environment. Returning a comment keeps the template valid.
+        return f"/* Missing static asset: {static_path} */"
     return Path(file_path).read_text(encoding="utf-8")
 
 
@@ -39,7 +41,8 @@ def _read_text_from_static(static_path: str) -> str:
 def _read_bytes_from_static(static_path: str) -> bytes:
     file_path = finders.find(static_path)
     if not file_path:
-        raise FileNotFoundError(f"Static asset not found: {static_path}")
+        # Fail-safe: return empty bytes so we can still render a valid data URL.
+        return b""
     return Path(file_path).read_bytes()
 
 
@@ -60,6 +63,11 @@ def inline_js(static_path: str) -> str:
 @register.simple_tag
 def inline_image_data_url(static_path: str) -> str:
     data = _read_bytes_from_static(static_path)
+    if not data:
+        # Transparent 1x1 PNG (keeps CSS `url('...')` and <img> valid).
+        return mark_safe(
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+XJ6kAAAAASUVORK5CYII="
+        )
     ext = Path(static_path).suffix.lower()
     mime = _MIME_BY_EXT.get(ext, "application/octet-stream")
     b64 = base64.b64encode(data).decode("ascii")
