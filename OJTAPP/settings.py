@@ -112,10 +112,8 @@ ROOT_URLCONF = 'OJTAPP.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [
-            BASE_DIR / 'templates',
-            BASE_DIR / 'CalculateHours' / 'templates',
-        ],
+        'DIRS': [BASE_DIR / 'templates'],
+        'DIRS': [BASE_DIR / 'CalculateHours/templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -202,10 +200,15 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-# Collectstatic output. Must not overlap STATICFILES_DIRS.
-# If this folder is empty (no collectstatic on deploy), WHITENOISE_USE_FINDERS
-# below serves from STATICFILES_DIRS / app static instead.
-STATIC_ROOT = BASE_DIR / "staticfiles"
+# Where `collectstatic` puts files.
+# On Vercel we collect into `.vercel/output/static/static/`.
+# WhiteNoise needs `STATIC_ROOT` to point to the same folder at runtime so `/static/...` works.
+VERCEL_STATIC_DIR = BASE_DIR / ".vercel" / "output" / "static" / "static"
+ON_VERCEL_RUNTIME = IS_VERCEL or VERCEL_STATIC_DIR.exists()
+if ON_VERCEL_RUNTIME:
+    STATIC_ROOT = VERCEL_STATIC_DIR
+else:
+    STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Project-level static files (e.g. static/js/ojt.js at repo root)
 STATICFILES_DIRS = [
@@ -213,17 +216,12 @@ STATICFILES_DIRS = [
 ]
 
 # Django 6+ static storage config.
-# Manifest storage only after collectstatic (staticfiles/staticfiles.json).
-# Without it, {% static %} must match real paths — use non-manifest storage.
-_staticfiles_manifest = STATIC_ROOT / "staticfiles.json"
-if _staticfiles_manifest.exists():
-    staticfiles_backend = "whitenoise.storage.CompressedManifestStaticFilesStorage"
-else:
+# On Vercel we disable manifest hashing to avoid missing-hash 404s when static serving
+# is not wired exactly like local dev.
+if ON_VERCEL_RUNTIME:
     staticfiles_backend = "django.contrib.staticfiles.storage.StaticFilesStorage"
-
-# WhiteNoise defaults use_finders to DEBUG; with DEBUG=False and an empty STATIC_ROOT,
-# CSS/JS would 404 unless finders are enabled when no manifest exists.
-WHITENOISE_USE_FINDERS = not _staticfiles_manifest.exists()
+else:
+    staticfiles_backend = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},

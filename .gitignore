@@ -4,12 +4,6 @@ __pycache__/
 .venv/
 venv/
 
-# Vercel build output (should not be committed)
-.vercel/
-
 # Secrets / local env
 .env
 venv/.venv
-
-# Django collectstatic output
-staticfiles/
