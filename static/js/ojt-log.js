@@ -147,6 +147,37 @@ function ojtMinutesFromTime(timeStr) {
   return h * 60 + m;
 }
 
+/** Stored "HH:MM" → parts for 12h UI: hour 1–12, minutes "00"-"59", "AM"|"PM". */
+function ojtTime24hTo12hParts(timeStr) {
+  const s = String(timeStr || "").trim();
+  const m = s.match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return { h: "", mm: "", ap: "AM" };
+  let hh = Number(m[1]);
+  const mm = String(m[2]).padStart(2, "0");
+  if (Number.isNaN(hh) || hh < 0 || hh > 23) return { h: "", mm: "", ap: "AM" };
+  const isPm = hh >= 12;
+  let h12 = hh % 12;
+  if (h12 === 0) h12 = 12;
+  return { h: String(h12), mm, ap: isPm ? "PM" : "AM" };
+}
+
+/** 12h UI → stored "HH:MM" or null if invalid. Empty minutes defaults to 00. Hour 00 = 12. */
+function ojtTime12hPartsTo24h(hourStr, minuteStr, ap) {
+  let h = parseInt(String(hourStr ?? "").trim(), 10);
+  const mmRaw = String(minuteStr ?? "").trim();
+  const mm = mmRaw === "" ? 0 : parseInt(mmRaw, 10);
+  const apu = String(ap ?? "AM").toUpperCase();
+  if (Number.isNaN(h)) return null;
+  if (h === 0) h = 12;
+  if (h < 1 || h > 12) return null;
+  if (Number.isNaN(mm) || mm < 0 || mm > 59) return null;
+  let hh24;
+  if (apu === "AM") hh24 = h === 12 ? 0 : h;
+  else if (apu === "PM") hh24 = h === 12 ? 12 : h + 12;
+  else return null;
+  return `${String(hh24).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+}
+
 function ojtNowTimeString() {
   const d = new Date();
   const hh = String(d.getHours()).padStart(2, "0");

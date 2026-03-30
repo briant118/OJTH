@@ -1543,3 +1543,24 @@ details.ojt-profile-details[open] .ojt-profile-panel {
   }
 }
 
+/* Records form: AM/PM selects — black menu (options) + dark control */
+.ojt-page #recordTimeInAmPm,
+.ojt-page #recordTimeOutAmPm {
+  background-color: #000000 !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color-scheme: dark;
+}
+
+.ojt-page #recordTimeInAmPm:focus,
+.ojt-page #recordTimeOutAmPm:focus {
+  border-color: rgba(255, 122, 24, 0.65) !important;
+  box-shadow: 0 0 0 0.2rem rgba(255, 122, 24, 0.2);
+}
+
+.ojt-page #recordTimeInAmPm option,
+.ojt-page #recordTimeOutAmPm option {
+  background-color: #000000;
+  color: rgba(255, 255, 255, 0.95);
+}
+

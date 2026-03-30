@@ -146,14 +146,15 @@ function ojtRenderEntryTable() {
       const open = ojtEntryIsOpen(row);
       const h = row.hours ?? ojtComputeHoursBetween(row.timeIn, row.timeOut);
       const esc = ojtEscapeHtml;
-      const toutDisplay = row.timeOut ? esc(row.timeOut) : `<span class="text-warning">—</span>`;
+      const label12 = typeof ojtFormatTime12hLabel === "function" ? ojtFormatTime12hLabel : (t) => t || "—";
+      const toutDisplay = row.timeOut ? esc(label12(row.timeOut)) : `<span class="text-warning">—</span>`;
       const statusBadge = open
         ? `<span class="badge text-bg-warning text-dark">Open</span>`
         : `<span class="badge text-bg-success">Done</span>`;
       return `
       <tr>
         <td>${esc(row.date)}</td>
-        <td>${esc(row.timeIn)}</td>
+        <td>${esc(label12(row.timeIn))}</td>
         <td>${toutDisplay}</td>
         <td>${statusBadge}</td>
         <td class="text-end fw-semibold">${open ? "—" : ojtFormatHours(h)}</td>

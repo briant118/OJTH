@@ -47,13 +47,15 @@ function ojtExportDtrPdf() {
     return String(a.timeIn || "").localeCompare(String(b.timeIn || ""));
   });
 
+  const fmtT = typeof ojtFormatTime12hLabel === "function" ? ojtFormatTime12hLabel : (t) => t || "—";
+
   const body = entries.map((e) => {
     const open = ojtEntryIsOpen(e);
     const h = e.hours ?? ojtComputeHoursBetween(e.timeIn, e.timeOut);
     return [
       e.date || "—",
-      e.timeIn || "—",
-      e.timeOut || "—",
+      e.timeIn ? fmtT(e.timeIn) : "—",
+      e.timeOut ? fmtT(e.timeOut) : "—",
       open ? "—" : ojtFormatHours(h),
       open ? "Open" : "Done",
     ];

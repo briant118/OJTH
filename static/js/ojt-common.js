@@ -10,10 +10,24 @@ function ojtFormatTimeAmPm(timeStr) {
   if (Number.isNaN(hh) || hh < 0 || hh > 23) return s;
 
   // Convert to 12-hour display but keep minutes; force seconds to 00.
-  const ampm = hh >= 12 ? "PM" : "am";
+  const ampm = hh >= 12 ? "PM" : "AM";
   hh = hh % 12;
   if (hh === 0) hh = 12;
   return `${String(hh).padStart(2, "0")}:${mm}:00 ${ampm}`;
+}
+
+/** Compact label for tables/lists: "9:05 AM" (stored value remains HH:MM 24h). */
+function ojtFormatTime12hLabel(timeStr) {
+  const s = String(timeStr || "").trim();
+  const m = s.match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return s || "—";
+  let hh = Number(m[1]);
+  const mm = String(m[2]).padStart(2, "0");
+  if (Number.isNaN(hh) || hh < 0 || hh > 23) return s;
+  const isPm = hh >= 12;
+  let h12 = hh % 12;
+  if (h12 === 0) h12 = 12;
+  return `${h12}:${mm} ${isPm ? "PM" : "AM"}`;
 }
 
 function startLiveClock() {
@@ -70,7 +84,7 @@ function startLiveClock() {
 
     const now = new Date();
     const hh24 = now.getHours();
-    const ampm = hh24 >= 12 ? "PM" : "am";
+    const ampm = hh24 >= 12 ? "PM" : "AM";
     let hh = hh24 % 12;
     if (hh === 0) hh = 12;
     el.textContent = `${String(hh).padStart(2, "0")}:00:00 ${ampm}`;

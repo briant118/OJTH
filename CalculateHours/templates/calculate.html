@@ -4,7 +4,6 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#f8f9fa" />
     <title>Records - OJT Hours</title>
     {% include "partials/bootstrap_head.html" %}
   </head>
@@ -34,14 +33,72 @@
                   <input class="form-control" id="recordDate" type="date" />
                 </div>
                 <div class="col-12 col-md-4">
-                  <label class="form-label" for="recordTimeIn">Time in</label>
-                  <input class="form-control" id="recordTimeIn" type="text" inputmode="numeric" maxlength="5" placeholder="00:00" />
-                  <div class="form-text">Use 24-hour format (HH:MM).</div>
+                  <label class="form-label">Time in</label>
+                  <div class="d-flex flex-wrap align-items-center gap-2">
+                    <input
+                      class="form-control"
+                      id="recordTimeInH"
+                      type="text"
+                      inputmode="numeric"
+                      maxlength="2"
+                      value="00"
+                      placeholder="00"
+                      autocomplete="off"
+                      aria-label="Time in hour"
+                      style="max-width: 4.25rem"
+                    />
+                    <span class="text-secondary">:</span>
+                    <input
+                      class="form-control"
+                      id="recordTimeInM"
+                      type="text"
+                      inputmode="numeric"
+                      maxlength="2"
+                      value="00"
+                      placeholder="00"
+                      autocomplete="off"
+                      aria-label="Time in minutes"
+                      style="max-width: 4.25rem"
+                    />
+                    <select class="form-select" id="recordTimeInAmPm" aria-label="Time in AM or PM" style="max-width: 6.5rem">
+                      <option value="AM">AM</option>
+                      <option value="PM">PM</option>
+                    </select>
+                  </div>
+                  <div class="form-text">12-hour time. Hour <strong>00</strong> means 12 (midday or midnight depending on AM/PM). Minutes default to <strong>00</strong>.</div>
                 </div>
                 <div class="col-12 col-md-4">
-                  <label class="form-label" for="recordTimeOut">Time out</label>
-                  <input class="form-control" id="recordTimeOut" type="text" inputmode="numeric" maxlength="5" placeholder="00:00" />
-                  <div class="form-text">Leave empty to save as open session. Use 24-hour format (HH:MM).</div>
+                  <label class="form-label">Time out</label>
+                  <div class="d-flex flex-wrap align-items-center gap-2">
+                    <input
+                      class="form-control"
+                      id="recordTimeOutH"
+                      type="text"
+                      inputmode="numeric"
+                      maxlength="2"
+                      placeholder="00"
+                      autocomplete="off"
+                      aria-label="Time out hour"
+                      style="max-width: 4.25rem"
+                    />
+                    <span class="text-secondary">:</span>
+                    <input
+                      class="form-control"
+                      id="recordTimeOutM"
+                      type="text"
+                      inputmode="numeric"
+                      maxlength="2"
+                      placeholder="00"
+                      autocomplete="off"
+                      aria-label="Time out minutes"
+                      style="max-width: 4.25rem"
+                    />
+                    <select class="form-select" id="recordTimeOutAmPm" aria-label="Time out AM or PM" style="max-width: 6.5rem">
+                      <option value="AM">AM</option>
+                      <option value="PM">PM</option>
+                    </select>
+                  </div>
+                  <div class="form-text">Leave <strong>time out</strong> blank for an open session; fill hour (and minutes) when the session ends.</div>
                 </div>
 
                 <div class="col-12">
@@ -75,7 +132,7 @@
                   <span class="ojt-records-dot"></span>
                   All sessions
                 </strong>
-                <div class="d-flex align-items-center gap-2">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
                   <button class="btn btn-outline-primary ojt-record-action-btn" type="button" id="btnAddRecordTop">
                     <i class="bi bi-plus-lg"></i>
                     <span>Add</span>
@@ -182,10 +239,10 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js" crossorigin="anonymous"></script>
-    <script src="{% static 'js/ojt-common.js' %}?v=2"></script>
+    <script src="{% static 'js/ojt-common.js' %}?v=3"></script>
     <script src="{% static 'js/ojt-schedule.js' %}"></script>
-    <script src="{% static 'js/ojt-log.js' %}?v=2"></script>
-    <script src="{% static 'js/ojt-filter.js' %}?v=2"></script>
+    <script src="{% static 'js/ojt-log.js' %}?v=7"></script>
+    <script src="{% static 'js/ojt-filter.js' %}?v=8"></script>
     <script src="{% static 'js/ojt-dtr-pdf.js' %}"></script>
   </body>
 </html>

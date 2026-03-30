@@ -53,8 +53,13 @@ function ojtHideRecordEditor() {
 function ojtShowRecordView(row) {
   if (!row) return;
   if ($("viewDate")) $("viewDate").textContent = row.date || "—";
-  if ($("viewTimeIn")) $("viewTimeIn").textContent = row.timeIn || "—";
-  if ($("viewTimeOut")) $("viewTimeOut").textContent = row.timeOut || "—";
+  if ($("viewTimeIn")) $("viewTimeIn").textContent = typeof ojtFormatTime12hLabel === "function" ? ojtFormatTime12hLabel(row.timeIn) : row.timeIn || "—";
+  if ($("viewTimeOut"))
+    $("viewTimeOut").textContent = row.timeOut
+      ? typeof ojtFormatTime12hLabel === "function"
+        ? ojtFormatTime12hLabel(row.timeOut)
+        : row.timeOut
+      : "—";
   if ($("viewStatus")) $("viewStatus").textContent = ojtEntryIsOpen(row) ? "Open" : "Done";
   const h = row.hours ?? ojtComputeHoursBetween(row.timeIn, row.timeOut);
   if ($("viewHours")) {
@@ -72,71 +77,29 @@ function ojtShowRecordView(row) {
   ojtRecordViewModal.show();
 }
 
-function ojtNormalizeRecordTime(raw) {
-  const s = String(raw || "").trim();
-  if (!s) return "";
-
-  // Accept compact digits: "8", "08", "800", "0830", "1730".
-  const digitsOnly = s.replace(/\D/g, "");
-  if (/^\d{1,4}$/.test(digitsOnly) && digitsOnly === s) {
-    if (digitsOnly.length <= 2) {
-      const h = Number(digitsOnly);
-      if (Number.isNaN(h) || h < 0 || h > 23) return null;
-      return `${String(h).padStart(2, "0")}:00`;
-    }
-    if (digitsOnly.length === 3) {
-      const h = Number(digitsOnly.slice(0, 1));
-      const m = Number(digitsOnly.slice(1));
-      if (h < 0 || h > 23 || m < 0 || m > 59) return null;
-      return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-    }
-    const h = Number(digitsOnly.slice(0, 2));
-    const m = Number(digitsOnly.slice(2));
-    if (h < 0 || h > 23 || m < 0 || m > 59) return null;
-    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-  }
-
-  // Accept strict HH:MM.
-  const m = s.match(/^(\d{1,2}):(\d{2})$/);
-  if (!m) return null;
-  let hh = Number(m[1]);
-  const mm = Number(m[2]);
-
-  if (Number.isNaN(hh) || Number.isNaN(mm) || mm < 0 || mm > 59) return null;
-  if (hh < 0 || hh > 23) {
-    return null;
-  }
-
-  return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
-}
-
-function ojtMaskTimeTyping(inputId) {
-  const el = $(inputId);
+function ojtSanitizeHourMinuteInput(el) {
   if (!el) return;
-  const digits = String(el.value || "").replace(/\D/g, "").slice(0, 4);
-  if (digits.length === 0) {
-    el.value = "";
-  } else if (digits.length <= 2) {
-    el.value = `${digits}:`;
-  } else {
-    el.value = `${digits.slice(0, 2)}:${digits.slice(2)}`;
-  }
+  el.value = String(el.value || "").replace(/\D/g, "").slice(0, 2);
 }
 
-function ojtFormatTimeInputValue(inputId) {
-  const el = $(inputId);
+function ojtPadTwoDigitOnBlur(el) {
   if (!el) return;
   const raw = String(el.value || "").trim();
   if (!raw) return;
-  const normalized = ojtNormalizeRecordTime(raw);
-  if (normalized) el.value = normalized;
+  const n = parseInt(raw, 10);
+  if (Number.isNaN(n)) return;
+  el.value = String(n).padStart(2, "0");
 }
 
 function ojtResetRecordForm() {
   if ($("recordId")) $("recordId").value = "";
   if ($("recordDate")) $("recordDate").value = ojtTodayDateString();
-  if ($("recordTimeIn")) $("recordTimeIn").value = "";
-  if ($("recordTimeOut")) $("recordTimeOut").value = "";
+  if ($("recordTimeInH")) $("recordTimeInH").value = "00";
+  if ($("recordTimeInM")) $("recordTimeInM").value = "00";
+  if ($("recordTimeOutH")) $("recordTimeOutH").value = "";
+  if ($("recordTimeOutM")) $("recordTimeOutM").value = "";
+  if ($("recordTimeInAmPm")) $("recordTimeInAmPm").value = "AM";
+  if ($("recordTimeOutAmPm")) $("recordTimeOutAmPm").value = "PM";
   if ($("recordFormMode")) $("recordFormMode").textContent = "Adding new record";
 }
 
@@ -144,8 +107,14 @@ function ojtLoadRecordIntoForm(row) {
   if (!row) return;
   if ($("recordId")) $("recordId").value = row.id || "";
   if ($("recordDate")) $("recordDate").value = row.date || "";
-  if ($("recordTimeIn")) $("recordTimeIn").value = row.timeIn || "";
-  if ($("recordTimeOut")) $("recordTimeOut").value = row.timeOut || "";
+  const tin = ojtTime24hTo12hParts(row.timeIn);
+  if ($("recordTimeInH")) $("recordTimeInH").value = tin.h;
+  if ($("recordTimeInM")) $("recordTimeInM").value = tin.mm;
+  if ($("recordTimeInAmPm")) $("recordTimeInAmPm").value = tin.ap;
+  const tout = ojtTime24hTo12hParts(row.timeOut);
+  if ($("recordTimeOutH")) $("recordTimeOutH").value = row.timeOut ? tout.h : "";
+  if ($("recordTimeOutM")) $("recordTimeOutM").value = row.timeOut ? tout.mm : "";
+  if ($("recordTimeOutAmPm")) $("recordTimeOutAmPm").value = row.timeOut ? tout.ap : "PM";
   if ($("recordFormMode")) $("recordFormMode").textContent = "Editing selected record";
 }
 
@@ -177,7 +146,11 @@ function ojtRenderRecordsTable() {
     if (h != null && !Number.isNaN(h)) totalH += h;
   });
 
-  if (meta) meta.textContent = `${all.length} ${all.length === 1 ? "record" : "records"}`;
+  const label12 = typeof ojtFormatTime12hLabel === "function" ? ojtFormatTime12hLabel : (t) => t || "—";
+
+  if (meta) {
+    meta.textContent = `${all.length} ${all.length === 1 ? "record" : "records"}`;
+  }
   if (totalEl) {
     totalEl.innerHTML = `<span class="ojt-hours-val">${ojtFormatHours(totalH)}</span>`;
   }
@@ -195,14 +168,17 @@ function ojtRenderRecordsTable() {
       const open = ojtEntryIsOpen(row);
       const h = row.hours ?? ojtComputeHoursBetween(row.timeIn, row.timeOut);
       const esc = ojtEscapeHtml;
-      const toutDisplay = row.timeOut ? esc(row.timeOut) : '<span class="text-warning">—</span>';
+      const tinLabel = esc(label12(row.timeIn));
+      const toutDisplay = row.timeOut
+        ? esc(label12(row.timeOut))
+        : '<span class="text-warning">—</span>';
       const statusBadge = open
         ? '<span class="badge text-bg-warning text-dark">Open</span>'
         : '<span class="badge text-bg-success">Done</span>';
       return `
       <tr class="ojt-record-row" data-entry-id="${esc(row.id)}">
         <td>${esc(row.date)}</td>
-        <td>${esc(row.timeIn)}</td>
+        <td>${tinLabel}</td>
         <td>${toutDisplay}</td>
         <td>${statusBadge}</td>
         <td class="text-end fw-semibold">${open ? "—" : `<span class="ojt-hours-val">${ojtFormatHours(h)}</span>`}</td>
@@ -215,30 +191,45 @@ function ojtRenderRecordsTable() {
 function ojtSaveRecordFromForm() {
   const id = $("recordId")?.value?.trim() || "";
   const date = $("recordDate")?.value || "";
-  const rawTimeIn = $("recordTimeIn")?.value || "";
-  const rawTimeOut = $("recordTimeOut")?.value || "";
-  const timeIn = ojtNormalizeRecordTime(rawTimeIn);
-  const timeOut = ojtNormalizeRecordTime(rawTimeOut);
+  const inH = $("recordTimeInH")?.value ?? "";
+  const inM = $("recordTimeInM")?.value ?? "";
+  const inAp = $("recordTimeInAmPm")?.value ?? "AM";
+  const outH = $("recordTimeOutH")?.value ?? "";
+  const outM = $("recordTimeOutM")?.value ?? "";
+  const outAp = $("recordTimeOutAmPm")?.value ?? "PM";
+
+  const timeIn = ojtTime12hPartsTo24h(inH, inM, inAp);
+  const outHTrim = String(outH).trim();
+  const timeOutEmpty = !outHTrim;
+  const timeOut = timeOutEmpty ? "" : ojtTime12hPartsTo24h(outH, outM, outAp);
 
   if (!date) {
     alert("Choose a date.");
     return;
   }
-  if (!rawTimeIn.trim()) {
-    alert("Enter time in.");
-    return;
-  }
   if (!timeIn) {
-    alert("Invalid time in. Use HH:MM (example: 08:00).");
+    alert("Invalid time in. Use hour 00–12 (00 means 12 o\u2019clock), minutes 0–59, and AM or PM.");
     return;
   }
-  if (rawTimeOut.trim() && !timeOut) {
-    alert("Invalid time out. Use HH:MM (example: 17:00).");
+  if (!timeOutEmpty && !timeOut) {
+    alert("Invalid time out. Use hour 00–12, minutes 0–59, and AM or PM—or leave time out blank for an open session.");
     return;
   }
 
-  if ($("recordTimeIn")) $("recordTimeIn").value = timeIn;
-  if ($("recordTimeOut")) $("recordTimeOut").value = timeOut || "";
+  const tinParts = ojtTime24hTo12hParts(timeIn);
+  if ($("recordTimeInH")) $("recordTimeInH").value = tinParts.h;
+  if ($("recordTimeInM")) $("recordTimeInM").value = tinParts.mm;
+  if ($("recordTimeInAmPm")) $("recordTimeInAmPm").value = tinParts.ap;
+  if (timeOut) {
+    const tp = ojtTime24hTo12hParts(timeOut);
+    if ($("recordTimeOutH")) $("recordTimeOutH").value = tp.h;
+    if ($("recordTimeOutM")) $("recordTimeOutM").value = tp.mm;
+    if ($("recordTimeOutAmPm")) $("recordTimeOutAmPm").value = tp.ap;
+  } else {
+    if ($("recordTimeOutH")) $("recordTimeOutH").value = "";
+    if ($("recordTimeOutM")) $("recordTimeOutM").value = "";
+    if ($("recordTimeOutAmPm")) $("recordTimeOutAmPm").value = "PM";
+  }
 
   if (id) {
     // Existing row: always patch this same row (including time out when provided).
@@ -340,10 +331,9 @@ function ojtWireRecordsPage() {
     runDeleteCurrentRecord();
   });
 
-  // Make time typing easier: normalize common formats when leaving the field.
-  ["recordTimeIn", "recordTimeOut"].forEach((id) => {
-    $(id)?.addEventListener("input", () => ojtMaskTimeTyping(id));
-    $(id)?.addEventListener("blur", () => ojtFormatTimeInputValue(id));
+  ["recordTimeInH", "recordTimeInM", "recordTimeOutH", "recordTimeOutM"].forEach((id) => {
+    $(id)?.addEventListener("input", () => ojtSanitizeHourMinuteInput($(id)));
+    $(id)?.addEventListener("blur", () => ojtPadTwoDigitOnBlur($(id)));
   });
 
   $("resultsTableBody")?.addEventListener("click", (e) => {
