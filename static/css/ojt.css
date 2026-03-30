@@ -1564,3 +1564,26 @@ details.ojt-profile-details[open] .ojt-profile-panel {
   color: rgba(255, 255, 255, 0.95);
 }
 
+/* Records export split button — dark dropdown menu */
+.ojt-page .ojt-records-card .dropdown-menu {
+  background: rgba(11, 11, 13, 0.98) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 0.85rem !important;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.5) !important;
+  padding: 0.35rem 0 !important;
+}
+
+.ojt-page .ojt-records-card .dropdown-item {
+  color: rgba(255, 255, 255, 0.92) !important;
+}
+
+.ojt-page .ojt-records-card .dropdown-item:hover,
+.ojt-page .ojt-records-card .dropdown-item:focus {
+  background: rgba(255, 122, 24, 0.18) !important;
+  color: #ffffff !important;
+}
+
+.ojt-page .ojt-records-card .dropdown-item i {
+  color: rgba(255, 255, 255, 0.88);
+}
+
