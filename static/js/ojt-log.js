@@ -2,7 +2,6 @@
 
 const OJT_LOG_STORAGE_KEY = "ojt_log_entries_v2";
 const OJT_LOG_LEGACY_KEY = "ojt_log_entries_v1";
-const OJT_CLIENT_KEY_STORAGE_KEY = "ojt_client_key_v1";
 
 function ojtAuthUserId() {
   try {
@@ -19,34 +18,15 @@ function ojtUserScopedKey(baseKey) {
   return `${baseKey}_user_${uid}`;
 }
 
-function ojtClientKeyStorageKey() {
-  // If logged in, namespace the key by user id to isolate data per account.
-  return ojtUserScopedKey(OJT_CLIENT_KEY_STORAGE_KEY);
-}
-
-function ojtGetClientKey() {
-  try {
-    const storageKey = ojtClientKeyStorageKey();
-    const existing = localStorage.getItem(storageKey);
-    if (existing) return existing;
-    const k = ojtNewId();
-    localStorage.setItem(storageKey, k);
-    return k;
-  } catch {
-    // Fallback (should not happen in normal browser use).
-    return "client_fallback";
-  }
-}
-
 function ojtSaveEntriesLocal(entries) {
   localStorage.setItem(ojtUserScopedKey(OJT_LOG_STORAGE_KEY), JSON.stringify(entries));
 }
 
 function ojtPersistEntriesToServer(entries) {
-  const clientKey = ojtGetClientKey();
-  const payload = { clientKey, entries };
+  if (!ojtAuthUserId()) return;
+  const payload = { entries };
 
-  // Fire-and-forget; UI stays responsive.
+  // Fire-and-forget; UI stays responsive. Scoped to session user on the server.
   fetch("/api/entries/sync/", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -60,14 +40,15 @@ function ojtPersistEntriesToServer(entries) {
  * If server returns empty but localStorage has entries, we push local to server instead.
  */
 async function ojtSyncEntriesFromServer() {
-  const clientKey = ojtGetClientKey();
+  if (!ojtAuthUserId()) return;
   const local = ojtLoadEntries(); // may migrate legacy
 
   try {
-    const res = await fetch(`/api/entries/?clientKey=${encodeURIComponent(clientKey)}`, {
+    const res = await fetch("/api/entries/", {
       method: "GET",
       credentials: "same-origin",
     });
+    if (res.status === 401) return;
     if (!res.ok) return;
     const data = await res.json();
     const serverEntries = Array.isArray(data?.entries) ? data.entries : [];
@@ -136,7 +117,7 @@ function ojtLoadEntries() {
 
 function ojtSaveEntries(entries) {
   ojtSaveEntriesLocal(entries);
-  // Persist full state so delete is reflected server-side for this clientKey.
+  // Persist full state so delete is reflected server-side for the signed-in user.
   ojtPersistEntriesToServer(entries);
 }
 
@@ -303,4 +284,118 @@ function ojtEscapeHtml(s) {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/"/g, "&quot;");
+}
+
+/** Records backup: same shape the Import action expects (and optional raw array). */
+const OJT_RECORDS_JSON_VERSION = 1;
+
+function ojtNormalizeTimeHm(s) {
+  const m = String(s ?? "").trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return null;
+  const h = parseInt(m[1], 10);
+  const min = parseInt(m[2], 10);
+  if (Number.isNaN(h) || h < 0 || h > 23 || Number.isNaN(min) || min < 0 || min > 59) return null;
+  return `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
+}
+
+function ojtExportEntriesJson() {
+  const entries = ojtLoadEntries();
+  const payload = {
+    format: "ojt-hours-records",
+    version: OJT_RECORDS_JSON_VERSION,
+    exportedAt: new Date().toISOString(),
+    entries: entries.map((e) => ({
+      id: e.id,
+      date: e.date,
+      timeIn: e.timeIn,
+      timeOut: e.timeOut ?? null,
+      hours: e.hours ?? null,
+    })),
+  };
+  const json = JSON.stringify(payload, null, 2);
+  const blob = new Blob([json], { type: "application/json;charset=utf-8" });
+  const name = `ojt-records-${ojtTodayDateString()}.json`;
+  if (typeof ojtTriggerFileDownload === "function") {
+    ojtTriggerFileDownload(blob, name, "application/json");
+    return;
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function ojtNormalizeImportedEntry(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const date = String(raw.date || "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  const timeIn = ojtNormalizeTimeHm(raw.timeIn);
+  if (!timeIn) return null;
+  const toutRaw = raw.timeOut;
+  const timeOut =
+    toutRaw == null || toutRaw === "" ? null : ojtNormalizeTimeHm(toutRaw);
+  if (toutRaw != null && toutRaw !== "" && !timeOut) return null;
+  let id = raw.id != null ? String(raw.id).trim() : "";
+  if (!id) id = ojtNewId();
+  let hours = null;
+  if (timeOut) {
+    hours = ojtComputeHoursBetween(timeIn, timeOut);
+    if (hours == null) return null;
+  }
+  return { id, date, timeIn, timeOut, hours };
+}
+
+function ojtParseImportRecordsJson(text) {
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    return { ok: false, message: "This file is not valid JSON." };
+  }
+  let list;
+  if (Array.isArray(data)) list = data;
+  else if (data && Array.isArray(data.entries)) list = data.entries;
+  else {
+    return {
+      ok: false,
+      message: 'Expected a JSON array of records, or an object with an "entries" array.',
+    };
+  }
+  const normalized = [];
+  let skipped = 0;
+  for (const item of list) {
+    const row = ojtNormalizeImportedEntry(item);
+    if (row) normalized.push(row);
+    else skipped += 1;
+  }
+  if (normalized.length === 0) {
+    return {
+      ok: false,
+      message:
+        skipped > 0
+          ? "No valid records found. Use dates YYYY-MM-DD and times HH:MM (24-hour)."
+          : "No records in file.",
+    };
+  }
+  return { ok: true, entries: normalized, skipped };
+}
+
+function ojtMergeImportIntoEntries(imported) {
+  const existing = ojtLoadEntries();
+  const byId = new Map(existing.map((e) => [String(e.id), { ...e }]));
+  for (const row of imported) {
+    byId.set(String(row.id), row);
+  }
+  const merged = Array.from(byId.values());
+  merged.sort((a, b) => {
+    const c = ojtCompareDateStr(b.date, a.date);
+    if (c !== 0) return c;
+    return String(b.timeIn || "").localeCompare(String(a.timeIn || ""));
+  });
+  ojtSaveEntries(merged);
+  return { count: merged.length, imported: imported.length };
 }

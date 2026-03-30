@@ -94,10 +94,10 @@ function ojtPadTwoDigitOnBlur(el) {
 function ojtResetRecordForm() {
   if ($("recordId")) $("recordId").value = "";
   if ($("recordDate")) $("recordDate").value = ojtTodayDateString();
-  if ($("recordTimeInH")) $("recordTimeInH").value = "00";
-  if ($("recordTimeInM")) $("recordTimeInM").value = "00";
-  if ($("recordTimeOutH")) $("recordTimeOutH").value = "";
-  if ($("recordTimeOutM")) $("recordTimeOutM").value = "";
+  if ($("recordTimeInH")) $("recordTimeInH").value = "";
+  if ($("recordTimeInM")) $("recordTimeInM").value = "";
+  if ($("recordTimeOutH")) $("recordTimeOutH").value = "00";
+  if ($("recordTimeOutM")) $("recordTimeOutM").value = "00";
   if ($("recordTimeInAmPm")) $("recordTimeInAmPm").value = "AM";
   if ($("recordTimeOutAmPm")) $("recordTimeOutAmPm").value = "PM";
   if ($("recordFormMode")) $("recordFormMode").textContent = "Adding new record";
@@ -313,6 +313,51 @@ function ojtWireRecordsPage() {
       return;
     }
     alert("PDF export is unavailable right now.");
+  });
+  $("btnExportRecordsJson")?.addEventListener("click", () => {
+    if (typeof ojtExportEntriesJson !== "function") {
+      alert("JSON export is unavailable.");
+      return;
+    }
+    ojtExportEntriesJson();
+  });
+  $("btnImportRecordsTop")?.addEventListener("click", () => {
+    $("ojtImportRecordsFile")?.click();
+  });
+  $("ojtImportRecordsFile")?.addEventListener("change", (e) => {
+    const input = e.target;
+    const file = input?.files?.[0];
+    if (input) input.value = "";
+    if (!file) return;
+    if (typeof ojtParseImportRecordsJson !== "function" || typeof ojtMergeImportIntoEntries !== "function") {
+      alert("Import is unavailable.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = String(reader.result || "");
+      const parsed = ojtParseImportRecordsJson(text);
+      if (!parsed.ok) {
+        alert(parsed.message || "Import failed.");
+        return;
+      }
+      const n = parsed.entries.length;
+      const skipNote = parsed.skipped ? ` (${parsed.skipped} row(s) in file skipped as invalid.)` : "";
+      const okGo = confirm(
+        `Import ${n} record(s) from this file?${skipNote}\n\nRows with the same id as in the backup will replace your current rows. Other rows are kept.`
+      );
+      if (!okGo) return;
+      const res = ojtMergeImportIntoEntries(parsed.entries);
+      ojtRenderRecordsTable();
+      ojtSyncHeaderActionStates();
+      alert(
+        `Import finished. You now have ${res.count} record(s) (${res.imported} applied from file).${
+          parsed.skipped ? ` ${parsed.skipped} row(s) were skipped.` : ""
+        }`
+      );
+    };
+    reader.onerror = () => alert("Could not read the file.");
+    reader.readAsText(file, "UTF-8");
   });
   $("btnCloseRecordEditor")?.addEventListener("click", () => {
     ojtHideRecordEditor();

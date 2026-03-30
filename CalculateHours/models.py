@@ -7,13 +7,21 @@ from django.contrib.auth import get_user_model
 
 class OJTEntry(models.Model):
     """
-    Persisted copy of a single OJT session row from the browser.
+    OJT session row stored in Django's database (e.g. Supabase Postgres when configured).
 
-    We use `client_key` (stored in browser localStorage) to isolate data per device,
-    without requiring authentication.
+    Rows created while logged in are owned by ``user``; legacy rows may have ``user`` null
+    and a non-empty ``client_key`` (pre-account API).
     """
 
-    client_key = models.CharField(max_length=64, db_index=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="ojt_entries",
+        null=True,
+        blank=True,
+    )
+    # Legacy anonymous device id; empty for rows tied to ``user``.
+    client_key = models.CharField(max_length=64, db_index=True, blank=True, default="")
     client_id = models.CharField(max_length=128)  # corresponds to localStorage `entry.id`
 
     date = models.DateField()
@@ -27,8 +35,19 @@ class OJTEntry(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ("client_key", "client_id")
         ordering = ["-date", "time_in"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "client_id"],
+                condition=models.Q(user__isnull=False),
+                name="ojtentry_user_client_id_uniq",
+            ),
+            models.UniqueConstraint(
+                fields=["client_key", "client_id"],
+                condition=models.Q(user__isnull=True),
+                name="ojtentry_client_key_client_id_uniq",
+            ),
+        ]
 
     def __str__(self) -> str:
         return f"{self.date} {self.time_in} -> {self.time_out or 'OPEN'}"

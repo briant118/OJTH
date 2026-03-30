@@ -95,7 +95,13 @@ function ojtExportDtrPdf() {
 
   const safe = String(office).replace(/[^\w\-]+/g, "_").slice(0, 40) || "DTR";
   const stamp = new Date().toISOString().slice(0, 10);
-  doc.save(`DTR_${safe}_${stamp}.pdf`);
+  const outName = `DTR_${safe}_${stamp}.pdf`;
+  if (typeof ojtTriggerFileDownload === "function") {
+    const blob = doc.output("blob");
+    ojtTriggerFileDownload(blob, outName, "application/pdf");
+    return;
+  }
+  doc.save(outName);
 }
 
 document.addEventListener("DOMContentLoaded", () => {

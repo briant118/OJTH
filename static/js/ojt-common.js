@@ -1,6 +1,56 @@
 /** Shared: live clock — load on every page that has #liveDateTime */
 const $ = (id) => document.getElementById(id);
 
+/**
+ * Save a Blob as a downloaded file. On phones, prefers the system share sheet
+ * (Save to Files / Downloads) when supported; otherwise opens the file in a new tab
+ * so the browser PDF/text viewer can “Share → Save”.
+ */
+function ojtTriggerFileDownload(blob, filename, mimeType) {
+  const type = mimeType || blob.type || "application/octet-stream";
+  const isMobile =
+    /Android|webOS|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+    (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
+
+  const openAsDownload = () => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    if (isMobile) {
+      a.target = "_blank";
+      a.rel = "noopener";
+    }
+    a.style.setProperty("position", "fixed");
+    a.style.setProperty("left", "-9999px");
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), isMobile ? 120000 : 3000);
+  };
+
+  if (!isMobile || typeof File === "undefined") {
+    openAsDownload();
+    return;
+  }
+
+  const file = new File([blob], filename, { type });
+  if (
+    typeof navigator !== "undefined" &&
+    navigator.share &&
+    navigator.canShare &&
+    navigator.canShare({ files: [file] })
+  ) {
+    navigator.share({ files: [file], title: filename }).catch((err) => {
+      if (err && err.name === "AbortError") return;
+      openAsDownload();
+    });
+    return;
+  }
+
+  openAsDownload();
+}
+
 function ojtFormatTimeAmPm(timeStr) {
   const s = String(timeStr || "").trim();
   const m = s.match(/^(\d{1,2}):(\d{2})$/);

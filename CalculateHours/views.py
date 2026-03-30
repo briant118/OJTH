@@ -580,18 +580,24 @@ def _parse_time(time_str: str):
     return datetime.strptime(time_str, "%H:%M").time()
 
 
+def _entries_api_requires_auth(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Authentication required"}, status=401)
+    return None
+
+
 @csrf_exempt
 @require_http_methods(["GET"])
 def api_entries_list(request):
     """
-    GET /api/entries/?clientKey=...
-    Returns entries belonging to the browser/device identified by clientKey.
+    GET /api/entries/
+    Returns OJT rows for the signed-in user (same DB as auth: Supabase when configured).
     """
-    client_key = request.GET.get("clientKey")
-    if not client_key:
-        return HttpResponseBadRequest("Missing clientKey")
+    deny = _entries_api_requires_auth(request)
+    if deny is not None:
+        return deny
 
-    rows = OJTEntry.objects.filter(client_key=client_key).order_by("date", "time_in")
+    rows = OJTEntry.objects.filter(user=request.user).order_by("date", "time_in")
     entries = [
         {
             "id": r.client_id,
@@ -610,20 +616,22 @@ def api_entries_list(request):
 def api_entries_sync(request):
     """
     POST /api/entries/sync/
-    Body: { clientKey: "...", entries: [ {id,date,timeIn,timeOut,hours}, ... ] }
+    Body: { entries: [ {id,date,timeIn,timeOut,hours}, ... ] }
 
-    The server will upsert all provided rows for that clientKey and
-    delete any rows that are no longer present for that client.
+    Upserts rows for the signed-in user and deletes server rows missing from the payload.
     """
+    deny = _entries_api_requires_auth(request)
+    if deny is not None:
+        return deny
+
     try:
         payload = json.loads(request.body.decode("utf-8"))
     except Exception:
         return HttpResponseBadRequest("Invalid JSON")
 
-    client_key = payload.get("clientKey")
     raw_entries = payload.get("entries") or []
-    if not client_key or not isinstance(raw_entries, list):
-        return HttpResponseBadRequest("Missing clientKey or entries")
+    if not isinstance(raw_entries, list):
+        return HttpResponseBadRequest("Missing entries")
 
     normalized = []
     client_ids = set()
@@ -663,12 +671,13 @@ def api_entries_sync(request):
             continue
 
     with transaction.atomic():
-        OJTEntry.objects.filter(client_key=client_key).exclude(client_id__in=client_ids).delete()
+        OJTEntry.objects.filter(user=request.user).exclude(client_id__in=client_ids).delete()
         for row in normalized:
             OJTEntry.objects.update_or_create(
-                client_key=client_key,
+                user=request.user,
                 client_id=row["client_id"],
                 defaults={
+                    "client_key": "",
                     "date": row["date"],
                     "time_in": row["time_in"],
                     "time_out": row["time_out"],
