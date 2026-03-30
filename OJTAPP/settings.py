@@ -202,11 +202,9 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-# Collectstatic output directory.
-#
-# IMPORTANT: `STATIC_ROOT` must NOT overlap with `STATICFILES_DIRS`.
-# Vercel builds commonly run `python manage.py collectstatic`, so keep a
-# dedicated output folder even on Vercel.
+# Collectstatic output. Must not overlap STATICFILES_DIRS.
+# If this folder is empty (no collectstatic on deploy), WHITENOISE_USE_FINDERS
+# below serves from STATICFILES_DIRS / app static instead.
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Project-level static files (e.g. static/js/ojt.js at repo root)
@@ -215,12 +213,17 @@ STATICFILES_DIRS = [
 ]
 
 # Django 6+ static storage config.
-#
-# Use the standard WhiteNoise production setup:
-# - `STATICFILES_DIRS` includes your repo's `static/`
-# - `collectstatic` writes into `STATIC_ROOT` (`staticfiles/`)
-# - WhiteNoise serves from `STATIC_ROOT` (optionally using the manifest)
-staticfiles_backend = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+# Manifest storage only after collectstatic (staticfiles/staticfiles.json).
+# Without it, {% static %} must match real paths — use non-manifest storage.
+_staticfiles_manifest = STATIC_ROOT / "staticfiles.json"
+if _staticfiles_manifest.exists():
+    staticfiles_backend = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+else:
+    staticfiles_backend = "django.contrib.staticfiles.storage.StaticFilesStorage"
+
+# WhiteNoise defaults use_finders to DEBUG; with DEBUG=False and an empty STATIC_ROOT,
+# CSS/JS would 404 unless finders are enabled when no manifest exists.
+WHITENOISE_USE_FINDERS = not _staticfiles_manifest.exists()
 
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
