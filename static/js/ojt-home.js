@@ -410,6 +410,7 @@ function ojtHomeRenderChart() {
 
 document.addEventListener("DOMContentLoaded", async () => {
   ojtHomeWireTimeModal();
+  if (typeof ojtSyncScheduleFromServer === "function") await ojtSyncScheduleFromServer();
   await ojtSyncEntriesFromServer();
   ojtHomeInit();
   // Use shared header time (driven by ojt-common.js) if present.

@@ -395,6 +395,7 @@ function wireSaveButtons() {
 
         // No saved plans exist; keep UX consistent by clearing the editor/form.
         ojtClearScheduleStorage();
+        if (typeof ojtPersistScheduleToServer === "function") ojtPersistScheduleToServer();
         loadPlanFromStorage();
         renderPlanList();
         return;
@@ -460,8 +461,9 @@ function wireSaveButtons() {
   });
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   startLiveClock();
+  if (typeof ojtSyncScheduleFromServer === "function") await ojtSyncScheduleFromServer();
   wireDayPresets();
   wirePlanInputs();
   wireSaveButtons();

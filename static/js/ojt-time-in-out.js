@@ -271,6 +271,7 @@ function ojtWireTimeInOutPage() {
 
 document.addEventListener("DOMContentLoaded", async () => {
   startLiveClock();
+  if (typeof ojtSyncScheduleFromServer === "function") await ojtSyncScheduleFromServer();
   const hasSchedule = ojtHasSchedule();
 
   // Always sync entries so previously saved "time in/out" can be shown even

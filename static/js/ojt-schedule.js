@@ -135,6 +135,7 @@ function ojtSaveSchedule(payload) {
   // Mark as active and keep the legacy single-plan key for gate logic.
   ojtWriteJson(ojtScheduleUserScopedKey(OJT_SCHEDULE_KEY), normalized);
   if (normalized.id) ojtWriteJson(ojtScheduleUserScopedKey(OJT_SCHEDULE_ACTIVE_ID_KEY), normalized.id);
+  ojtPersistScheduleToServer();
 }
 
 function ojtClearScheduleStorage() {
@@ -155,6 +156,7 @@ function ojtLoadScheduleById(id) {
   if (!found) return null;
   ojtWriteJson(ojtScheduleUserScopedKey(OJT_SCHEDULE_KEY), found);
   ojtWriteJson(ojtScheduleUserScopedKey(OJT_SCHEDULE_ACTIVE_ID_KEY), found.id);
+  ojtPersistScheduleToServer();
   return found;
 }
 
@@ -176,6 +178,7 @@ function ojtDeleteScheduleById(id) {
   if (next.length === 0 || activeId === id || active?.id === id) {
     ojtClearScheduleStorage();
   }
+  ojtPersistScheduleToServer();
   return true;
 }
 
@@ -185,3 +188,75 @@ function ojtHasSchedule() {
 
 // Backwards compatibility: callers sometimes only use the single active key.
 // `ojtGetSchedules()` + `ojtDeleteScheduleById()` are new helpers for the plan list UI.
+
+function ojtSerializeScheduleState() {
+  ojtSeedScheduleListFromActiveIfNeeded();
+  return {
+    plans: ojtGetSchedules(),
+    activePlanId: ojtGetActiveScheduleId(),
+  };
+}
+
+function ojtApplyScheduleStateFromServer(data) {
+  if (!data || typeof data !== "object") return;
+  const plans = Array.isArray(data.plans) ? data.plans.filter((p) => p && ojtScheduleIsComplete(p)) : [];
+  const activePlanId =
+    data.activePlanId != null && data.activePlanId !== "" ? String(data.activePlanId) : null;
+
+  ojtWriteJson(ojtScheduleUserScopedKey(OJT_SCHEDULE_LIST_KEY), plans);
+
+  if (plans.length === 0) {
+    localStorage.removeItem(ojtScheduleUserScopedKey(OJT_SCHEDULE_KEY));
+    localStorage.removeItem(ojtScheduleUserScopedKey(OJT_SCHEDULE_ACTIVE_ID_KEY));
+    return;
+  }
+
+  let active = activePlanId ? plans.find((p) => p && p.id === activePlanId) : null;
+  if (!active) active = plans[0];
+  if (!active || !ojtScheduleIsComplete(active)) return;
+
+  const normalized = ojtNormalizeScheduleForStorage(active);
+  ojtWriteJson(ojtScheduleUserScopedKey(OJT_SCHEDULE_KEY), normalized);
+  ojtWriteJson(ojtScheduleUserScopedKey(OJT_SCHEDULE_ACTIVE_ID_KEY), normalized.id);
+}
+
+function ojtPersistScheduleToServer() {
+  if (typeof ojtAuthUserId !== "function" || !ojtAuthUserId()) return;
+  const { plans, activePlanId } = ojtSerializeScheduleState();
+  fetch("/api/schedule/sync/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      plans,
+      activePlanId: activePlanId || null,
+    }),
+    credentials: "same-origin",
+  }).catch(() => {});
+}
+
+async function ojtSyncScheduleFromServer() {
+  if (typeof ojtAuthUserId !== "function" || !ojtAuthUserId()) return;
+  const local = ojtSerializeScheduleState();
+
+  try {
+    const res = await fetch("/api/schedule/", {
+      method: "GET",
+      credentials: "same-origin",
+    });
+    if (res.status === 401) return;
+    if (!res.ok) return;
+    const data = await res.json();
+    const serverPlans = Array.isArray(data?.plans) ? data.plans : [];
+
+    if (serverPlans.length === 0) {
+      if (local.plans.length > 0) {
+        ojtPersistScheduleToServer();
+      }
+      return;
+    }
+
+    ojtApplyScheduleStateFromServer(data);
+  } catch {
+    /* ignore */
+  }
+}

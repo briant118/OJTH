@@ -28,4 +28,6 @@ urlpatterns = [
     path('profile/delete/', views.profile_delete, name='profile_delete'),
     path('api/entries/', views.api_entries_list, name='api_entries_list'),
     path('api/entries/sync/', views.api_entries_sync, name='api_entries_sync'),
+    path('api/schedule/', views.api_schedule_get, name='api_schedule_get'),
+    path('api/schedule/sync/', views.api_schedule_sync, name='api_schedule_sync'),
 ]

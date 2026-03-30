@@ -399,6 +399,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   ojtWireRecordsPage();
   ojtResetRecordForm();
   ojtHideRecordEditor();
+  if (typeof ojtSyncScheduleFromServer === "function") await ojtSyncScheduleFromServer();
   await ojtSyncEntriesFromServer();
   ojtRenderRecordsTable();
   ojtSyncHeaderActionStates();

@@ -19,7 +19,7 @@ from django.utils import timezone
 from django.contrib.auth import logout
 
 from .forms import EmailAuthenticationForm, EmailSetPasswordForm, EmailUserCreationForm
-from .models import EmailVerificationOTP, OJTEntry, UserProfile
+from .models import EmailVerificationOTP, OJTEntry, UserProfile, UserScheduleState
 
 
 OTP_TTL_MINUTES = 5
@@ -686,3 +686,62 @@ def api_entries_sync(request):
             )
 
     return JsonResponse({"ok": True, "count": len(normalized)})
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def api_schedule_get(request):
+    """
+    GET /api/schedule/
+    Returns { plans: [...], activePlanId: string|null } for the signed-in user.
+    """
+    deny = _entries_api_requires_auth(request)
+    if deny is not None:
+        return deny
+
+    obj, _ = UserScheduleState.objects.get_or_create(user=request.user, defaults={"data": {}})
+    payload = obj.data if isinstance(obj.data, dict) else {}
+    plans = payload.get("plans") if isinstance(payload.get("plans"), list) else []
+    active = payload.get("activePlanId")
+    if active is not None and not isinstance(active, (str, int)):
+        active = None
+    if active is not None:
+        active = str(active)
+    return JsonResponse({"plans": plans, "activePlanId": active})
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_schedule_sync(request):
+    """
+    POST /api/schedule/sync/
+    Body: { plans: [...], activePlanId: string|null }
+    """
+    deny = _entries_api_requires_auth(request)
+    if deny is not None:
+        return deny
+
+    try:
+        body = json.loads(request.body.decode("utf-8"))
+    except Exception:
+        return HttpResponseBadRequest("Invalid JSON")
+
+    plans = body.get("plans")
+    if not isinstance(plans, list):
+        return HttpResponseBadRequest("plans must be an array")
+    if len(plans) > 100:
+        return HttpResponseBadRequest("Too many plans")
+
+    active_plan_id = body.get("activePlanId")
+    if active_plan_id is not None and not isinstance(active_plan_id, (str, int)):
+        return HttpResponseBadRequest("activePlanId invalid")
+    if active_plan_id is not None and active_plan_id != "":
+        active_plan_id = str(active_plan_id)
+    else:
+        active_plan_id = None
+
+    obj, _ = UserScheduleState.objects.get_or_create(user=request.user, defaults={"data": {}})
+    obj.data = {"plans": plans, "activePlanId": active_plan_id}
+    obj.save(update_fields=["data", "updated_at"])
+
+    return JsonResponse({"ok": True, "count": len(plans)})

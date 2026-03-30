@@ -92,3 +92,22 @@ class UserProfile(models.Model):
 
     def __str__(self) -> str:
         return f"Profile<{self.user_id}> {self.email}"
+
+
+class UserScheduleState(models.Model):
+    """
+    Saved OJT plan(s) for the signed-in user (mirrors browser localStorage).
+
+    ``data`` holds JSON: { "plans": [...], "activePlanId": "<uuid>" | null }.
+    """
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="schedule_state",
+    )
+    data = models.JSONField(default=dict)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self) -> str:
+        return f"ScheduleState<{self.user_id}>"
