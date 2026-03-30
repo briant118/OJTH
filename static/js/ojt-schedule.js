@@ -260,3 +260,106 @@ async function ojtSyncScheduleFromServer() {
     /* ignore */
   }
 }
+
+/** Local calendar YYYY-MM-DD (avoid UTC shift from toISOString). */
+function ojtLocalYmd(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/**
+ * When you're behind (missed days / low hours), remaining hours need more calendar days
+ * at your planned hours/day on working days only — same rules as the plan end calculator.
+ *
+ * @param {object} schedule — saved plan with hoursPerDay, workingDays, startDate
+ * @param {number} remainingHours — target minus recorded (>= 0)
+ * @param {string} fromDateStr — usually today YYYY-MM-DD; projection won't start before plan start
+ * @returns {string|null} projected end date YYYY-MM-DD or null
+ */
+function ojtProjectedEndDateFromRemaining(schedule, remainingHours, fromDateStr) {
+  if (!schedule || remainingHours == null || remainingHours <= 0) return null;
+  const hpd = Number(schedule.hoursPerDay);
+  let dows = Array.isArray(schedule.workingDays) ? schedule.workingDays : [];
+  if (!dows.length) dows = [1, 2, 3, 4, 5];
+  if (!hpd || hpd <= 0) return null;
+
+  const planStart = String(schedule.startDate || "").trim();
+  let startStr = String(fromDateStr || "").trim() || planStart;
+  if (planStart && startStr < planStart) startStr = planStart;
+
+  const cursor = new Date(`${startStr}T12:00:00`);
+  if (Number.isNaN(cursor.getTime())) return null;
+
+  let remaining = remainingHours;
+  const allowed = new Set(dows);
+  const MAX_DAYS = 365 * 20;
+
+  for (let i = 0; i < MAX_DAYS; i++) {
+    const dow = cursor.getDay();
+    if (allowed.has(dow)) {
+      remaining -= hpd;
+      if (remaining <= 0) {
+        return ojtLocalYmd(cursor);
+      }
+    }
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return null;
+}
+
+/** Plan end from start → total hours (same rules as Set schedule), no “from today” shift. */
+function ojtScheduleTheoreticalEndDate(schedule) {
+  if (!schedule) return null;
+  const startStr = String(schedule.startDate || "").trim();
+  const total = Number(schedule.totalHours) || 0;
+  const hpd = Number(schedule.hoursPerDay) || 0;
+  const dows = Array.isArray(schedule.workingDays) && schedule.workingDays.length ? schedule.workingDays : [1, 2, 3, 4, 5];
+  if (!startStr || total <= 0 || hpd <= 0 || !dows.length) return null;
+  let remaining = total;
+  const cursor = new Date(`${startStr}T12:00:00`);
+  if (Number.isNaN(cursor.getTime())) return null;
+  const allowed = new Set(dows);
+  const MAX_DAYS = 365 * 20;
+  for (let i = 0; i < MAX_DAYS; i++) {
+    const dow = cursor.getDay();
+    if (allowed.has(dow)) {
+      remaining -= hpd;
+      if (remaining <= 0) return ojtLocalYmd(cursor);
+    }
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return null;
+}
+
+/**
+ * After time in / out, move `schedule.endDate` to the projected finish (from today + remaining hours),
+ * so the end date moves with logged time. With **no** recorded hours, resets to the theoretical plan end.
+ */
+function ojtSyncScheduleEndDateToProjection() {
+  const s = ojtGetSchedule();
+  if (!s) return;
+  if (typeof ojtTotalRecordedHours !== "function") return;
+  const target = Number(s.totalHours) || 0;
+  const recorded = ojtTotalRecordedHours();
+  const remaining = Math.max(0, target - recorded);
+
+  if (recorded <= 0 && remaining > 0) {
+    const theoretical = ojtScheduleTheoreticalEndDate(s);
+    if (theoretical && theoretical !== s.endDate) {
+      ojtSaveSchedule({ ...s, endDate: theoretical, savedAt: new Date().toISOString() });
+    }
+    return;
+  }
+
+  let newEnd = null;
+  if (remaining <= 0) {
+    if (typeof ojtTodayDateString === "function") newEnd = ojtTodayDateString();
+  } else if (typeof ojtProjectedEndDateFromRemaining === "function") {
+    const today = typeof ojtTodayDateString === "function" ? ojtTodayDateString() : "";
+    newEnd = ojtProjectedEndDateFromRemaining(s, remaining, today);
+  }
+  if (!newEnd || newEnd === s.endDate) return;
+  ojtSaveSchedule({ ...s, endDate: newEnd, savedAt: new Date().toISOString() });
+}

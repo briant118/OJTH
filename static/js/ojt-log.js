@@ -119,6 +119,7 @@ function ojtSaveEntries(entries) {
   ojtSaveEntriesLocal(entries);
   // Persist full state so delete is reflected server-side for the signed-in user.
   ojtPersistEntriesToServer(entries);
+  if (typeof ojtSyncScheduleEndDateToProjection === "function") ojtSyncScheduleEndDateToProjection();
 }
 
 function ojtMinutesFromTime(timeStr) {

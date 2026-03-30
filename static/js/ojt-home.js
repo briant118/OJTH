@@ -282,10 +282,13 @@ function ojtHomeWireTimeModal() {
 }
 
 function ojtHomeInit() {
-  const schedule = ojtGetSchedule();
+  let schedule = ojtGetSchedule();
   const noEl = $("homeNoSchedule");
   const dashEl = $("homeDashboard");
   if (schedule && dashEl && noEl) {
+    if (typeof ojtSyncScheduleEndDateToProjection === "function") ojtSyncScheduleEndDateToProjection();
+    schedule = ojtGetSchedule();
+
     document.documentElement.classList.add("ojt-home-has-schedule");
     noEl.classList.add("d-none");
     dashEl.classList.remove("d-none");
@@ -298,7 +301,7 @@ function ojtHomeInit() {
     const elTarget = $("homeTargetHours");
     const elRecorded = $("homeRecordedHours");
     const elRemain = $("homeRemainingHours");
-    const elEnd = $("homePlanEnd");
+    const elProj = $("homeProjectedEnd");
     const elBar = $("homeProgressBar");
     const elLabel = $("homeProgressLabel");
     const elOffice = $("homeAssignedOffice");
@@ -316,7 +319,8 @@ function ojtHomeInit() {
     if (elTarget) elTarget.textContent = ojtFormatHours(target);
     if (elRecorded) elRecorded.textContent = ojtFormatHours(recorded);
     if (elRemain) elRemain.textContent = ojtFormatHours(remaining);
-    if (elEnd) elEnd.textContent = schedule.endDate || "—";
+
+    if (elProj) elProj.textContent = schedule.endDate ? ojtFormatDateStr(schedule.endDate) : "—";
     if (elBar) {
       elBar.style.width = `${pct}%`;
       elBar.setAttribute("aria-valuenow", String(Math.round(pct)));

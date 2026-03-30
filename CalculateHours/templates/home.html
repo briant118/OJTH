@@ -70,7 +70,7 @@
                       <div class="ojt-home-value" id="homeTraineeName">—</div>
                     </div>
                     <div class="col-6 text-end">
-                      <div class="ojt-home-label">Remaining (vs target)</div>
+                      <div class="ojt-home-label">Remaining hours</div>
                       <div class="ojt-home-number text-dark" id="homeRemainingHours">0.00</div>
                     </div>
                     <div class="col-6">
@@ -83,7 +83,8 @@
                     <div class="col-6">
                       <div class="ojt-home-label">Target hours (plan)</div>
                       <div class="ojt-home-number text-primary" id="homeTargetHours">0</div>
-                      <div class="small text-muted mt-1">Plan ends <span id="homePlanEnd">—</span></div>
+                      <div class="ojt-home-label mt-3">End date</div>
+                      <div class="ojt-home-number text-primary" id="homeProjectedEnd">—</div>
                     </div>
                     <div class="col-6">
                       <div class="ojt-home-label">Recorded hours</div>
@@ -211,8 +212,8 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" crossorigin="anonymous"></script>
     <script src="{% static 'js/ojt-common.js' %}?v=4"></script>
-    <script src="{% static 'js/ojt-schedule.js' %}?v=1"></script>
-    <script src="{% static 'js/ojt-log.js' %}?v=10"></script>
-    <script src="{% static 'js/ojt-home.js' %}?v=3"></script>
+    <script src="{% static 'js/ojt-schedule.js' %}?v=4"></script>
+    <script src="{% static 'js/ojt-log.js' %}?v=11"></script>
+    <script src="{% static 'js/ojt-home.js' %}?v=6"></script>
   </body>
 </html>
